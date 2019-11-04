@@ -2,14 +2,22 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: ingress-nginx
+  namespace: monitoring
+  labels:
+    app: grafana
 spec:
+  selector:
+    matchLabels:
+      app: grafana
   strategy:
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 1
     type: RollingUpdate
   template:
+    metadata:
+      labels:
+        app: grafana
     spec:
       containers:
         - image: grafana/grafana

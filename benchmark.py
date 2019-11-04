@@ -26,7 +26,7 @@ log_level = "debug"
 benchmark_tool = "fortio" # TODO: Should be enum
 benchmark_image = "fortio/fortio:latest_release"
 benchmark_port = "8080"
-benchmark_time = "15" # run benchmark in time
+benchmark_time = "60" # run benchmark in time
 qps = "10000" # requested qps
 application_name = "nginx"
 application_image = "nginx:latest" 
@@ -233,7 +233,7 @@ def run_measurement():
         # write data to file
 
         # let the cluster and pods have free time
-        time.sleep(4)
+        time.sleep(50)
 
 
 
@@ -242,7 +242,7 @@ def run_measurement():
 if __name__ == "__main__":
     logger.debug("Start script")
     cluster_config()
-    #deploy_application()
+    deploy_application()
     deploy_benchmark_tool()
     wait_for_start_pods()
     
