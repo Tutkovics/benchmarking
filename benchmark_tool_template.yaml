@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: [BECHMARK_NAME]-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: [BECHMARK_NAME]
+  template:
+    metadata:
+      labels:
+        app: [BECHMARK_NAME]
+    spec:
+      containers:
+      - name: [BECHMARK_NAME]-container
+        image: [BENCHMARK_IMAGE]
+        imagePullPolicy: Always
+        ports:
+        - containerPort: [BENCHMARK_PORT]
+          name: http-port
+      nodeName: [BENCHMARK_NODE]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: [BECHMARK_NAME]-service
+  labels:
+    app: [BECHMARK_NAME]
+spec:
+  type: NodePort
+  ports:
+    - nodePort: 30001
+      port: [BENCHMARK_PORT]
+      targetPort: [BENCHMARK_PORT]
+  selector:
+    app: [BECHMARK_NAME]
+---

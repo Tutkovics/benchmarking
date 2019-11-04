@@ -1,0 +1,3 @@
+sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'}) by (pod)
+sum(container_memory_usage_bytes{container=~"nginx-.+"}) by (container)
+sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'})
