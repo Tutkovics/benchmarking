@@ -35,7 +35,7 @@ application_image = "nginx:latest"
 application_port = "80"
 pods = ["2", "8"] # number of application pods in measurements
 cpu = ["400m", "50m"] # cpu limit / pod
-memory = ["64Mi", "128Mi"] # memory limit / pod
+memory = ["64Mi", "200Mi"] # memory limit / pod
 
 
 ### INITIALIZE
@@ -232,38 +232,62 @@ def run_measurement():
         #print(str(start_time) + "   " + str(end_time))
 
         cpu_query = { "query": "sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'}) by (pod)", "start": str(start_time), "end": str(end_time), "step": "0.1", "timeout": "1000ms" }
-        url_cpu = "http://" + cluster_ip + ":30000/api/v1/query_range?" + urllib.parse.urlencode(cpu_query)
+        memory_query = { "query": "sum(container_memory_usage_bytes{pod=~'" + application_name + "-deployment-.+'}) by (pod)", "start": str(start_time), "end": str(end_time), "step": "0.1", "timeout": "1000ms" }
+        url = "http://" + cluster_ip + ":30000/api/v1/query_range?" 
 
 #url_cpu = "http://" + cluster_ip + ":30000/api/v1/query_range?query=sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'})&start=" + str(start_time) + "&end=" + str(end_time) + "&step=0.1&timeout=1000ms"
-        logger.debug("Prometheus API url: " + url_cpu)
-        prometheus_res = json.loads(requests.get(url_cpu).text)
+        #logger.debug("Prometheus API url: " + url)
+        prometheus_cpu_res = json.loads(requests.get(url + urllib.parse.urlencode(cpu_query)).text)
+        prometheus_memory_res = json.loads(requests.get(url + urllib.parse.urlencode(memory_query)).text)
         #print(str(json.loads(requests.get(url_cpu).text)))
         
         #mem_usage = json.loads(requests.get(url="http://10.106.36.184:9090/api/v1/query_range?query=sum(rate(container_memory_usage_bytes{{container_name=\"nodejs-app\"}}[10s]))&start={0}&end={1}&step={2}".format(start_time,end_time,1,benchmark_time)).text)
 
         # write data to file
-        pods_consumed = 0 # count pods used cpu
+        pods_consumed_cpu = 0 # count number of pods used cpu and memory
+        pods_consumed_memory = 0 
+        value_of_cpu_used = 0.0 # sum of pods' memory and cpu usage
+        value_of_memory_used = 0.0
         pods_statistic = "" # for debugging collect statistic
 
 
-        if prometheus_res["status"] == "success": # api responded with success status 
-            logger.debug("Successfully get metrics from Prometheus")
-            for pod in prometheus_res["data"]["result"]:
+        if prometheus_cpu_res["status"] == "success": # api responded with success status 
+            logger.debug("Successfully get CPU metrics from Prometheus")
+            for pod in prometheus_cpu_res["data"]["result"]:
                 # delete pod statistic which was not increment usage
                 if pod["values"][0][1] == pod["values"][-1][1]:
-                    pods_statistic += "Pod: " + pod["metric"]["pod"] + " doesn't incremented -- " + pod["values"][0][1] + "\n"
+                    pods_statistic += "[CPU] Pod: " + pod["metric"]["pod"] + " doesn't incremented -- " + pod["values"][0][1] + "\n"
                 else:
-                    pods_consumed += 1
-                    pods_statistic += "Pod: " + pod["metric"]["pod"] + " consumed: " + pod["values"][-1][1] + "\n"
-
-            logger.debug(str(pods_consumed) + " pods consumed CPU")
+                    pods_consumed_cpu += 1
+                    value_of_cpu_used += float(pod["values"][-1][1])
+                    pods_statistic += "[CPU] Pod: " + pod["metric"]["pod"] + " consumed: " + pod["values"][-1][1] + "\n"
+            
+            if pods_consumed_cpu != pods[i]: # count more or less pods than should be
+                logger.warning(str(pods_consumed_cpu) + " pods consumed CPU (should:" + pods[i] + ")")
         else:
-            logger.debug("Can't get metrics from Prometheus")
+            logger.debug("Can't get CPU metrics from Prometheus")
+
+        if prometheus_memory_res["status"] == "success": # api responded with success status 
+            logger.debug("Successfully get MEMORY metrics from Prometheus")
+            for pod in prometheus_memory_res["data"]["result"]:
+                # delete pod statistic which was not increment usage
+                if pod["values"][0][1] == pod["values"][-1][1]:
+                    pods_statistic += "[MEMORY] Pod: " + pod["metric"]["pod"] + " doesn't incremented -- " + pod["values"][0][1] + "\n"
+                else:
+                    pods_consumed_memory += 1
+                    value_of_memory_used += float(pod["values"][-1][1])
+                    pods_statistic += "[MEMORY] Pod: " + pod["metric"]["pod"] + " consumed: " + pod["values"][-1][1] + "\n"
+            
+            if pods_consumed_memory != pods[i]: # count more or less pods than should be
+                logger.warning(str(pods_consumed_memory) + " pods consumed MEMORY (should:" + pods[i] + ")")
+        else:
+            logger.debug("Can't get MEMORY metrics from Prometheus")
 
         with open("./results/latest.json", "w") as res_file:
             res_file.write(str(benchmark_res))
-            res_file.write(str(prometheus_res))
+            res_file.write(str(prometheus_cpu_res))
             res_file.write(pods_statistic)
+            res_file.write("CPU: " + str(value_of_cpu_used) + " -- MEMORY: " + str(value_of_memory_used))
 
         # let the cluster and pods have free time
         time.sleep(50)
