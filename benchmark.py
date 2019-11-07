@@ -26,13 +26,15 @@ log_level = "debug"
 benchmark_tool = "fortio" # TODO: Should be enum
 benchmark_image = "fortio/fortio:latest_release"
 benchmark_port = "8080"
-benchmark_time = "60" # run benchmark in time
-qps = "10000" # requested qps
+benchmark_time = "6" # run benchmark in time
+qps_min = "8000" # minimum requested qps
+qps_max = "10000" # maximum requested qps
+qps_granularity = "500" # granularity of qps
 application_name = "nginx"
 application_image = "nginx:latest" 
 application_port = "80"
-pods = ["2", "10"] # number of application pods in measurements
-cpu = ["100m", "200m"] # cpu limit / pod
+pods = ["2", "8"] # number of application pods in measurements
+cpu = ["400m", "50m"] # cpu limit / pod
 memory = ["64Mi", "128Mi"] # memory limit / pod
 
 
@@ -45,6 +47,7 @@ ch = logging.StreamHandler() # create console handler
 formatter = logging.Formatter("%(asctime)s - %(levelname)-8s - %(message)s")
 ch.setFormatter(formatter)
 logger.addHandler(ch) # add the handlers to logger
+logging.getLogger("urllib3").setLevel(logging.WARNING) # hope to disable requests libary logging (don't spam my logging infos)
 
 # hide stdout from console commands
 if(mode != "develop"):
@@ -175,11 +178,17 @@ def delete_application(kill_prometheus = False):
     else:
         logger.warning("Can't delete benchmark deployment and service")
 
+def kill_all_app_pod():
+    os.system("kubectl scale deploy nginx-deployment --replicas=0" + dev_null)
+    logger.debug("Wait to scale down all pod")
+    time.sleep(10)
+
 def run_measurement():
     number_of_test_cases = len(pods)
     for i in range(0, number_of_test_cases):
         # kill all pod 
-        os.system("kubectl scale deploy nginx-deployment --replicas=0")
+        kill_all_app_pod()
+
         # podok fel / le skálázása
         # TODO: merge with deploy_application() function
         logger.debug("Start new measurement")
@@ -206,11 +215,12 @@ def run_measurement():
         service_ip = get_service_ip(application_name + "-service")
         
         # benchmark tool specific code! (until prometheus)
-        url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + qps + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=1000ms"
+        url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + qps_min + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=1000ms"
         logger.debug("Benchmarking on url: " + url_benchmark)
 
         start_time = time.time()  # start and end time needed for prometheus
         benchmark_res = json.loads((requests.get(url_benchmark)).text)
+        time.sleep(10) # deleay to send all statistics
         end_time = time.time()
 
         # process resoults from benchmark tool
@@ -226,11 +236,34 @@ def run_measurement():
 
 #url_cpu = "http://" + cluster_ip + ":30000/api/v1/query_range?query=sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'})&start=" + str(start_time) + "&end=" + str(end_time) + "&step=0.1&timeout=1000ms"
         logger.debug("Prometheus API url: " + url_cpu)
-        print(str(json.loads(requests.get(url_cpu).text)))
+        prometheus_res = json.loads(requests.get(url_cpu).text)
+        #print(str(json.loads(requests.get(url_cpu).text)))
         
         #mem_usage = json.loads(requests.get(url="http://10.106.36.184:9090/api/v1/query_range?query=sum(rate(container_memory_usage_bytes{{container_name=\"nodejs-app\"}}[10s]))&start={0}&end={1}&step={2}".format(start_time,end_time,1,benchmark_time)).text)
 
         # write data to file
+        pods_consumed = 0 # count pods used cpu
+        pods_statistic = "" # for debugging collect statistic
+
+
+        if prometheus_res["status"] == "success": # api responded with success status 
+            logger.debug("Successfully get metrics from Prometheus")
+            for pod in prometheus_res["data"]["result"]:
+                # delete pod statistic which was not increment usage
+                if pod["values"][0][1] == pod["values"][-1][1]:
+                    pods_statistic += "Pod: " + pod["metric"]["pod"] + " doesn't incremented -- " + pod["values"][0][1] + "\n"
+                else:
+                    pods_consumed += 1
+                    pods_statistic += "Pod: " + pod["metric"]["pod"] + " consumed: " + pod["values"][-1][1] + "\n"
+
+            logger.debug(str(pods_consumed) + " pods consumed CPU")
+        else:
+            logger.debug("Can't get metrics from Prometheus")
+
+        with open("./results/latest.json", "w") as res_file:
+            res_file.write(str(benchmark_res))
+            res_file.write(str(prometheus_res))
+            res_file.write(pods_statistic)
 
         # let the cluster and pods have free time
         time.sleep(50)

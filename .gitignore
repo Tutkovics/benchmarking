@@ -1,2 +1,5 @@
 # here are the live config .yaml files
 tmp/
+
+# latest Prometheus and banchmark results
+results/latest.json
