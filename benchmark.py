@@ -4,6 +4,7 @@
 # Used libaries for measurements
 ###
 import os
+import sys
 import logging
 import time
 import fileinput
@@ -11,32 +12,40 @@ import re
 import json
 import requests
 import urllib
+import yaml
 
 ### VARIABLES
 #  This values will come from a config yaml file / command line arguements.
 ###
-cluster_ip = "192.168.99.107" 
-cluster_name = "szakdoga"  # to configure kubectl in multicluster environment
-deploy_prometheus = False
-prometheus_node_port = "30000" # doesn't take affect
-worker_node = "minikube"
-benchmark_node = "minikube"
-mode = "developp" # some functions need to call in different mode (eg: benchmark, develop)
-log_level = "debug"
-benchmark_tool = "fortio" # TODO: Should be enum
-benchmark_image = "fortio/fortio:latest_release"
-benchmark_port = "8080"
-benchmark_time = "6" # run benchmark in time
-qps_min = "8000" # minimum requested qps
-qps_max = "10000" # maximum requested qps
-qps_granularity = "500" # granularity of qps
-application_name = "nginx"
-application_image = "nginx:latest" 
-application_port = "80"
-pods = ["2", "8"] # number of application pods in measurements
-cpu = ["400m", "50m"] # cpu limit / pod
-memory = ["64Mi", "200Mi"] # memory limit / pod
+if( len(sys.argv) != 2 ):
+    print("Please give configuration yaml file")
+    sys.exit(-1)
+else:
+    with open( str(sys.argv[1]) ) as config_file:
+        config = yaml.safe_load(config_file)
 
+        # get values from yaml
+        mode = config["develop"]["mode"]
+        log_level = config["develop"]["log_level"]
+        cluster_ip = config["cluster"]["ip"]
+        cluster_name = config["cluster"]["name"]
+        worker_node = config["cluster"]["worker_node"]
+        benchmark_node = config["cluster"]["benchmark_node"]
+        deploy_prometheus = config["prometheus"]["deploy"]
+        prometheus_node_port = config["prometheus"]["node_port"]
+        application_name = config["application"]["name"]
+        application_image = config["application"]["image"]
+        application_port = config["application"]["port"]
+        benchmark_tool = config["benchmark"]["tool"]["name"]
+        benchmark_image = config["benchmark"]["tool"]["image"]
+        benchmark_port = config["benchmark"]["tool"]["port"]
+        benchmark_time = config["benchmark"]["time"]
+        qps_min = config["benchmark"]["qps_min"]
+        qps_max = config["benchmark"]["qps_max"]
+        qps_granularity = config["benchmark"]["qps_granularity"]
+        pods = ["2", "8"] # config["benchmark"]["pods"]
+        cpu = ['200m', '50m'] # config["benchmark"]["cpu"]
+        memory = ['64Mi', '200Mi'] #config["benchmark"]["memory"]
 
 ### INITIALIZE
 
@@ -184,6 +193,7 @@ def kill_all_app_pod():
     time.sleep(10)
 
 def run_measurement():
+    # TODO: fragment function
     number_of_test_cases = len(pods)
     for i in range(0, number_of_test_cases):
         # kill all pod 
@@ -236,7 +246,7 @@ def run_measurement():
         url = "http://" + cluster_ip + ":30000/api/v1/query_range?" 
 
 #url_cpu = "http://" + cluster_ip + ":30000/api/v1/query_range?query=sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'})&start=" + str(start_time) + "&end=" + str(end_time) + "&step=0.1&timeout=1000ms"
-        #logger.debug("Prometheus API url: " + url)
+        logger.debug("Prometheus API url: " + url + urllib.parse.urlencode(cpu_query))
         prometheus_cpu_res = json.loads(requests.get(url + urllib.parse.urlencode(cpu_query)).text)
         prometheus_memory_res = json.loads(requests.get(url + urllib.parse.urlencode(memory_query)).text)
         #print(str(json.loads(requests.get(url_cpu).text)))
@@ -294,9 +304,8 @@ def run_measurement():
 
 
 
-
-
 if __name__ == "__main__":
+
     logger.debug("Start script")
     cluster_config()
     deploy_application()
