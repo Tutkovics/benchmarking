@@ -3,3 +3,7 @@ tmp/
 
 # latest Prometheus and banchmark results
 results/latest.json
+results/*
+
+# report sketch until have content
+report_sketch.md

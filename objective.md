@@ -31,4 +31,5 @@ horizontális? Léteznek az egyes alkalmazások specifikumaitól független, ál
 szabályok?
 
 Tanszéki konzulens: **Dr. Rétvári Gábor**
+
 Budapest, 2019. 09. 26.

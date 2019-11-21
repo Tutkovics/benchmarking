@@ -19,9 +19,9 @@ benchmark:
     image: "fortio/fortio:latest_release"
     port: "8080"
   time: "6" # benchmark run time
-  qps_min: "8000" # minimum requested qps
-  qps_max: "10000" # maximum requested qps
-  qps_granularity: "500" # granularity of qps
+  qps_min: "1300" # minimum requested qps
+  qps_max: "1601" # maximum requested qps
+  qps_granularity: "100" # granularity of qps
   # batch measurement
   pods: "['2', '8']" # number of application pods in measurements
   cpu: "['400m', '50m']" # cpu limit / pod
