@@ -15,7 +15,7 @@ import urllib
 import yaml
 
 ### VARIABLES
-#  This values will come from a config yaml file / command line arguements.
+#  This values come from a config yaml file
 ###
 if( len(sys.argv) != 2 ):
     print("Please give configuration yaml file")
@@ -58,18 +58,19 @@ ch.setFormatter(formatter)
 logger.addHandler(ch) # add the handlers to logger
 logging.getLogger("urllib3").setLevel(logging.WARNING) # hope to disable requests libary logging (don't spam my logging infos)
 
-# hide stdout from console commands
-if(mode != "develop"):
-    dev_null = " > /dev/null"
-else:
-    dev_null = ""
+def dev_null():
+    # hide stdout from console commands
+    if(mode != "develop"):
+        return " > /dev/null"
+    else:
+        return ""
 
 # measurement start time
 
 def cluster_config():
     logger.debug("Start cluster config")
     # configure kubectl context
-    if( os.system("kubectl config use-context " + cluster_name + dev_null) == 0):
+    if( os.system("kubectl config use-context " + cluster_name + dev_null()) == 0):
         # command run with success
         logger.debug("Kubectl using context: " + cluster_name)
     else:
@@ -77,7 +78,7 @@ def cluster_config():
 
     # need to deploy prometheus
     if(deploy_prometheus):
-        if (os.system("kubectl apply -f prometheus/ " + dev_null) == 0):
+        if (os.system("kubectl apply -f prometheus/ " + dev_null()) == 0):
             # command run with success
             logger.debug("Prometheus successfully started")
         else:
@@ -99,7 +100,7 @@ def deploy_application():
     logger.debug("New live configuration created for application")
 
     # apply new configuration file
-    if( os.system("kubectl apply -f ./tmp/live_applicatin_deployment.yaml" + dev_null) == 0):
+    if( os.system("kubectl apply -f ./tmp/live_applicatin_deployment.yaml" + dev_null()) == 0):
         logger.debug("Application deployment and service created")
     else:
         logger.warning("Can't create application deployment")
@@ -137,7 +138,7 @@ def deploy_benchmark_tool():
     logger.debug("New live configuration created for benchmark")
 
     # apply new configuration file
-    if( os.system("kubectl apply -f ./tmp/live_benchmark_deployment.yaml" + dev_null) == 0):
+    if( os.system("kubectl apply -f ./tmp/live_benchmark_deployment.yaml" + dev_null()) == 0):
         logger.debug("Benchmark deployment and service created")
     else:
         logger.warning("Can't create benchmark deployment")
@@ -167,7 +168,7 @@ def wait_for_start_pods():
 def delete_application(kill_prometheus = False):
     # delte measured deployment if needed delete prometeus too
     if(kill_prometheus):
-        if (os.system("kubectl delete -f prometheus/ " + dev_null) == 0):
+        if (os.system("kubectl delete -f prometheus/ " + dev_null()) == 0):
             # command run with success
             logger.debug("Prometheus successfully deleted")
         else:
@@ -176,19 +177,19 @@ def delete_application(kill_prometheus = False):
     logger.debug("Delete " + application_name + " deployment")
 
     # delete current application deployment
-    if( os.system("kubectl delete -f ./tmp/live_applicatin_deployment.yaml" + dev_null) == 0):
+    if( os.system("kubectl delete -f ./tmp/live_applicatin_deployment.yaml" + dev_null()) == 0):
         logger.debug("Application deployment and service successfully deleted")
     else:
         logger.warning("Can't delete application deployment and service")
 
     # delete current benchmark deployment
-    if( os.system("kubectl delete -f ./tmp/live_benchmark_deployment.yaml" + dev_null) == 0):
+    if( os.system("kubectl delete -f ./tmp/live_benchmark_deployment.yaml" + dev_null()) == 0):
         logger.debug("Benchmark deployment and service successfully deleted")
     else:
         logger.warning("Can't delete benchmark deployment and service")
 
 def kill_all_app_pod():
-    os.system("kubectl scale deploy nginx-deployment --replicas=0" + dev_null)
+    os.system("kubectl scale deploy nginx-deployment --replicas=0" + dev_null())
     logger.debug("Wait to scale down all pod")
     time.sleep(10)
 
@@ -214,7 +215,7 @@ def run_measurement():
         logger.debug("New configuration created for application [" + values + "]")
 
         # apply new configuration file
-        if( os.system("kubectl apply -f ./tmp/live_applicatin_deployment.yaml" + dev_null) == 0):
+        if( os.system("kubectl apply -f ./tmp/live_applicatin_deployment.yaml" + dev_null()) == 0):
             logger.debug("Application deployment and service scaled")
         else:
             logger.warning("Can't scale application deployment")
