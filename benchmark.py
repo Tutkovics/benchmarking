@@ -14,6 +14,7 @@ import requests
 import urllib
 import yaml
 import datetime
+#from datetime import datetime
 
 ### VARIABLES
 #  This values come from a config yaml file
@@ -27,7 +28,7 @@ else:
 
         # get values from yaml
         mode = config["develop"]["mode"]
-        log_level = config["develop"]["log_level"]
+        log_level = config["develop"]["log_level"] # does not take effect
         cluster_ip = config["cluster"]["ip"]
         cluster_name = config["cluster"]["name"]
         worker_node = config["cluster"]["worker_node"]
@@ -44,9 +45,10 @@ else:
         qps_min = int(config["benchmark"]["qps_min"])
         qps_max = int(config["benchmark"]["qps_max"])
         qps_granularity = int(config["benchmark"]["qps_granularity"])
-        pods = ["2", "8"] # config["benchmark"]["pods"]
-        cpu = ['200m', '50m'] # config["benchmark"]["cpu"]
-        memory = ['64Mi', '200Mi'] #config["benchmark"]["memory"]
+        pods = config["benchmark"]["pods"].split(",")
+        cpu = config["benchmark"]["cpu"].split(",")
+        memory = config["benchmark"]["memory"].split(",")
+        save_results = config["benchmark"]["save_results"]
 
 results_to_file = {} # every component can add information 
 tmp_results = {}
@@ -69,7 +71,6 @@ def dev_null():
     else:
         return ""
 
-# measurement start time
 
 def cluster_config():
     logger.debug("Start cluster config")
@@ -106,7 +107,8 @@ def deploy_application(test_case_number):
     logger.debug("New configuration created for application [" + values + "]")
 
 
-    results_to_file["numbre_of_pod"] = pods[test_case_number]
+    results_to_file["number_of_pod"] = pods[test_case_number]
+    results_to_file["benchmark_time"] = benchmark_time
     results_to_file["cpu_limit"] = cpu[test_case_number]
     results_to_file["memory_limit"] = memory[test_case_number]
 
@@ -214,15 +216,20 @@ def kill_all_app_pod():
     wait_for_start_pods() # funny but it works
 
 def run_measurement():
-    # TODO: fragment function
     number_of_test_cases = len(pods)
     for i in range(0, number_of_test_cases):
-        tmp_results = {}
+        global tmp_results
+        
+        json_array = []
 
         for requested_qps in range(qps_min, qps_max, qps_granularity):
+            tmp_results.clear()
+            time.sleep(20)
 
             # kill all pod 
             kill_all_app_pod()
+
+            time.sleep(10)
 
             # scale up and down pods
             deploy_application(i)
@@ -236,39 +243,38 @@ def run_measurement():
 
             tmp_results["requested_qps"] = requested_qps
 
-            url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=1000ms"
+            timeout = 200 # set fortio timeout [ms]
+
+            url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
             logger.debug("Benchmarking on url: " + url_benchmark)
 
             start_time = time.time()  # start and end time needed for prometheus
             benchmark_res = json.loads((requests.get(url_benchmark)).text)
 
             tmp_results["actualQPS"] = benchmark_res["ActualQPS"]
+            tmp_results["fortio_req_qps"] = benchmark_res["RequestedQPS"]
+            tmp_results["fortio_threads"] = benchmark_res["NumThreads"]
+            tmp_results["min_response"] = benchmark_res["DurationHistogram"]["Min"]
+            tmp_results["max_response"] = benchmark_res["DurationHistogram"]["Max"]
+            tmp_results["avg_response"] = benchmark_res["DurationHistogram"]["Avg"]
+            tmp_results["dev_response"] = benchmark_res["DurationHistogram"]["StdDev"]
+            tmp_results["response_histogram"] = benchmark_res["DurationHistogram"]["Data"]
+            
 
-            time.sleep(10) # deleay to send all statistics
+            time.sleep(30) # deleay to send all statistics
             end_time = time.time()
 
-            # process resoults from benchmark tool
-            # TODO
-
             # get data from Prometheus
-            #container_cpu_usage_seconds_total{pod=~"nginx-deployment-.+"}
-            #print(str(start_time) + "   " + str(end_time))
             get_prometheus_stats(start_time, end_time, i)
 
-            results_to_file[requested_qps] = tmp_results
-            
+            json_array.append(dict(tmp_results))
 
-    #url_cpu = "http://" + cluster_ip + ":30000/api/v1/query_range?query=sum(container_cpu_usage_seconds_total{pod=~'" + application_name + "-deployment-.+'})&start=" + str(start_time) + "&end=" + str(end_time) + "&step=0.1&timeout=1000ms"
-            
-            #print(str(json.loads(requests.get(url_cpu).text)))
-            
-            #mem_usage = json.loads(requests.get(url="http://10.106.36.184:9090/api/v1/query_range?query=sum(rate(container_memory_usage_bytes{{container_name=\"nodejs-app\"}}[10s]))&start={0}&end={1}&step={2}".format(start_time,end_time,1,benchmark_time)).text)
+
+        results_to_file["measurements"] = json_array # convert to string for bugfix
 
         # write data to file
-        write_results_to_file(i)
-
-        # let the cluster and pods have free time
-        #time.sleep(50) # unnecessarry because we will start new pods
+        if( save_results == "True"):
+            write_results_to_file(i)
 
 def get_prometheus_stats(start_time, end_time, test_case_number):
     # urls for query
@@ -284,6 +290,8 @@ def get_prometheus_stats(start_time, end_time, test_case_number):
     calculate_usages(prometheus_cpu_res, prometheus_memory_res, test_case_number)
 
 def calculate_usages(prometheus_cpu_res, prometheus_memory_res, test_case_number):
+    global tmp_results
+
     pods_consumed_cpu = 0 # count number of pods used cpu and memory
     pods_consumed_memory = 0 
     value_of_cpu_used = 0.0 # sum of pods' memory and cpu usage
@@ -325,20 +333,23 @@ def calculate_usages(prometheus_cpu_res, prometheus_memory_res, test_case_number
 
     tmp_results["cpu_used"] = value_of_cpu_used
     tmp_results["memory_used"] = value_of_memory_used
+    print(tmp_results)
 
 
 def write_results_to_file(id):
     # write to file
-    with open("./results/" + str(id) + ".json", "w") as res_file:
+    #now = datetime.now()
+    file_name = application_name + "-" + pods[id] + "-" + cpu[id] + "-" + memory[id] + "-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S") + ".json"
+    print(file_name)
+
+    with open("./results/" + file_name, "w") as res_file:
         global results_to_file
         results = json.dumps(results_to_file)
         res_file.write(str(results))
         results_to_file = {}
 
 
-
 if __name__ == "__main__":
-
     start = str(datetime.datetime.now())
     results_to_file["start"] = start
 

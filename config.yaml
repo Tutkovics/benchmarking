@@ -18,11 +18,12 @@ benchmark:
     name: "fortio"
     image: "fortio/fortio:latest_release"
     port: "8080"
-  time: "6" # benchmark run time
-  qps_min: "1300" # minimum requested qps
-  qps_max: "1601" # maximum requested qps
+  time: "60" # benchmark run time
+  qps_min: "100" # minimum requested qps
+  qps_max: "1800" # maximum requested qps
   qps_granularity: "100" # granularity of qps
   # batch measurement
-  pods: "['2', '8']" # number of application pods in measurements
-  cpu: "['400m', '50m']" # cpu limit / pod
-  memory: "['64Mi', '200Mi']" # memory limit / pod
+  pods: "1,2,3,4" #, '2', '3', '4']" # number of application pods in measurements
+  cpu: "100m,100m,100m,100m,100m" #, '100m', '100m', '100m']" # cpu limit / pod
+  memory: "64Mi,64Mi,64Mi,64Mi,64Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
+  save_results: "True" # save results to .json file
