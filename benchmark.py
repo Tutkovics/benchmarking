@@ -251,7 +251,8 @@ def run_measurement():
             start_time = time.time()  # start and end time needed for prometheus
             benchmark_res = json.loads((requests.get(url_benchmark)).text)
 
-            tmp_results["actualQPS"] = benchmark_res["ActualQPS"]
+            actualQPS = benchmark_res["ActualQPS"]
+            tmp_results["actualQPS"] = actualQPS
             tmp_results["fortio_req_qps"] = benchmark_res["RequestedQPS"]
             tmp_results["fortio_threads"] = benchmark_res["NumThreads"]
             tmp_results["min_response"] = benchmark_res["DurationHistogram"]["Min"]
@@ -268,6 +269,12 @@ def run_measurement():
             get_prometheus_stats(start_time, end_time, i)
 
             json_array.append(dict(tmp_results))
+
+            # if cluster setup can't answer more than requseted_qps 80%
+            # let write last results and break
+            if( abs(float(actualQPS) - requested_qps  ) > (requested_qps * 0.2) ):
+                logger.debug("Can't serve enough query (" + requested_qps + "-->" + actualQPS + ")")
+                break
 
 
         results_to_file["measurements"] = json_array # convert to string for bugfix
