@@ -14,55 +14,6 @@ import requests
 import urllib
 import yaml
 import datetime
-#from datetime import datetime
-
-### VARIABLES
-#  This values come from a config yaml file
-###
-if len(sys.argv) != 2:
-    print("Please give configuration yaml file")
-    sys.exit(-1)
-else:
-    with open( str(sys.argv[1]) ) as config_file:
-        config = yaml.safe_load(config_file)
-
-        # get values from yaml
-        mode = config["develop"]["mode"]
-        log_level = config["develop"]["log_level"] # does not take effect
-        cluster_ip = config["cluster"]["ip"]
-        cluster_name = config["cluster"]["name"]
-        worker_node = config["cluster"]["worker_node"]
-        benchmark_node = config["cluster"]["benchmark_node"]
-        deploy_prometheus = config["prometheus"]["deploy"]
-        prometheus_node_port = config["prometheus"]["node_port"]
-        application_name = config["application"]["name"]
-        application_image = config["application"]["image"]
-        application_port = config["application"]["port"]
-        benchmark_tool = config["benchmark"]["tool"]["name"]
-        benchmark_image = config["benchmark"]["tool"]["image"]
-        benchmark_port = config["benchmark"]["tool"]["port"]
-        benchmark_time = config["benchmark"]["time"]
-        qps_min = int(config["benchmark"]["qps_min"])
-        qps_max = int(config["benchmark"]["qps_max"])
-        qps_granularity = int(config["benchmark"]["qps_granularity"])
-        pods = config["benchmark"]["pods"].split(",")
-        cpu = config["benchmark"]["cpu"].split(",")
-        memory = config["benchmark"]["memory"].split(",")
-        save_results = config["benchmark"]["save_results"]
-
-results_to_file = {} # every component can add information 
-tmp_results = {}
-
-### INITIALIZE
-
-# Setup logging
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG) # here set log level. TODO: get from configuration (debug, info, warning, error, critical)
-ch = logging.StreamHandler() # create console handler
-formatter = logging.Formatter("%(asctime)s - %(levelname)-8s - %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch) # add the handlers to logger
-logging.getLogger("urllib3").setLevel(logging.WARNING) # hope to disable requests libary logging (don't spam my logging infos)
 
 def dev_null():
     # hide stdout from console commands
@@ -71,6 +22,20 @@ def dev_null():
     else:
         return ""
 
+def get_log_level(argument):
+    switch = {
+        "notset": logging.NOTSET,
+        "debug": logging.DEBUG,
+        "info": logging.INFO,
+        "warning": logging.WARNING, 
+        "error": logging.ERROR,
+        "critical": logging.CRITICAL,
+    }
+    res = switch.get(argument, lambda: "Invalid log level was given!")
+    
+    logger.debug("Loglevel set to: " + str(res))
+
+    return res
 
 def cluster_config():
     logger.debug("Start cluster config")
@@ -117,8 +82,6 @@ def deploy_application(test_case_number):
         logger.debug("Application deployment and service applied")
     else:
         logger.warning("Can't create application deployment")
-
-
 
 def get_service_ip(app_name):
     logger.debug("Get " + app_name +" service IP")
@@ -243,23 +206,30 @@ def run_measurement():
 
             tmp_results["requested_qps"] = requested_qps
 
-            timeout = 200 # set fortio timeout [ms]
-
-            url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
-            logger.debug("Benchmarking on url: " + url_benchmark)
-
             start_time = time.time()  # start and end time needed for prometheus
-            benchmark_res = json.loads((requests.get(url_benchmark)).text)
+            
+            if(requested_qps == 0):
+                # measure pod usage without querrys
+                logger.debug("Get pods' usage with 0 qps ")
+                actualQPS = 0
+                tmp_results["actualQPS"] = actualQPS
+                time.sleep(60)
+            else:
+                timeout = 200 # set fortio timeout [ms]
+                url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
+                logger.debug("Benchmarking on url: " + url_benchmark)
 
-            actualQPS = benchmark_res["ActualQPS"]
-            tmp_results["actualQPS"] = actualQPS
-            tmp_results["fortio_req_qps"] = benchmark_res["RequestedQPS"]
-            tmp_results["fortio_threads"] = benchmark_res["NumThreads"]
-            tmp_results["min_response"] = benchmark_res["DurationHistogram"]["Min"]
-            tmp_results["max_response"] = benchmark_res["DurationHistogram"]["Max"]
-            tmp_results["avg_response"] = benchmark_res["DurationHistogram"]["Avg"]
-            tmp_results["dev_response"] = benchmark_res["DurationHistogram"]["StdDev"]
-            tmp_results["response_histogram"] = benchmark_res["DurationHistogram"]["Data"]
+                benchmark_res = json.loads((requests.get(url_benchmark)).text)
+
+                actualQPS = benchmark_res["ActualQPS"]
+                tmp_results["actualQPS"] = actualQPS
+                tmp_results["fortio_req_qps"] = benchmark_res["RequestedQPS"]
+                tmp_results["fortio_threads"] = benchmark_res["NumThreads"]
+                tmp_results["min_response"] = benchmark_res["DurationHistogram"]["Min"]
+                tmp_results["max_response"] = benchmark_res["DurationHistogram"]["Max"]
+                tmp_results["avg_response"] = benchmark_res["DurationHistogram"]["Avg"]
+                tmp_results["dev_response"] = benchmark_res["DurationHistogram"]["StdDev"]
+                tmp_results["response_histogram"] = benchmark_res["DurationHistogram"]["Data"]
             
 
             time.sleep(30) # deleay to send all statistics
@@ -270,10 +240,10 @@ def run_measurement():
 
             json_array.append(dict(tmp_results))
 
-            # if cluster setup can't answer more than requseted_qps 80%
+            # if cluster setup can't answer more than requseted_qps 90%
             # let write last results and break
-            if( abs(float(actualQPS) - requested_qps  ) > (requested_qps * 0.2) ):
-                logger.debug("Can't serve enough query (" + requested_qps + "-->" + actualQPS + ")")
+            if( abs(float(actualQPS) - requested_qps  ) > (requested_qps * 0.1) ):
+                logger.debug("Can't serve enough query (" + str(requested_qps) + "-->" + str(actualQPS) + ")")
                 break
 
 
@@ -303,45 +273,41 @@ def calculate_usages(prometheus_cpu_res, prometheus_memory_res, test_case_number
     pods_consumed_memory = 0 
     value_of_cpu_used = 0.0 # sum of pods' memory and cpu usage
     value_of_memory_used = 0.0
-    pods_statistic = "" # for debugging collect statistic
-
+    #unused: pods_statistic = "" # for debugging collect statistic
 
     if prometheus_cpu_res["status"] == "success": # api responded with success status 
         logger.debug("Successfully get CPU metrics from Prometheus")
         for pod in prometheus_cpu_res["data"]["result"]:
             # delete pod statistic which was not increment usage
-            if pod["values"][0][1] == pod["values"][-1][1]:
-                pods_statistic += "[CPU] Pod: " + pod["metric"]["pod"] + " doesn't incremented -- " + pod["values"][0][1] + "\n"
-            else:
+            if is_pod_should_consume( pod["metric"]["pod"]):
                 pods_consumed_cpu += 1
                 value_of_cpu_used += float(pod["values"][-1][1])
-                pods_statistic += "[CPU] Pod: " + pod["metric"]["pod"] + " consumed: " + pod["values"][-1][1] + "\n"
         
         if str(pods_consumed_cpu) != pods[test_case_number]: # count more or less pods than should be
             logger.warning(str(pods_consumed_cpu) + " pods consumed CPU (should:" + pods[test_case_number] + ")")
+        else:
+            logger.debug(str(pods_consumed_cpu) + " pods consumed CPU (should:" + pods[test_case_number] + ")")
     else:
         logger.debug("Can't get CPU metrics from Prometheus")
 
     if prometheus_memory_res["status"] == "success": # api responded with success status 
         logger.debug("Successfully get MEMORY metrics from Prometheus")
-        for pod in prometheus_memory_res["data"]["result"]:
+        for pod in prometheus_cpu_res["data"]["result"]:
             # delete pod statistic which was not increment usage
-            if pod["values"][0][1] == pod["values"][-1][1]:
-                pods_statistic += "[MEMORY] Pod: " + pod["metric"]["pod"] + " doesn't incremented -- " + pod["values"][0][1] + "\n"
-            else:
+            if is_pod_should_consume( pod["metric"]["pod"]):
                 pods_consumed_memory += 1
                 value_of_memory_used += float(pod["values"][-1][1])
-                pods_statistic += "[MEMORY] Pod: " + pod["metric"]["pod"] + " consumed: " + pod["values"][-1][1] + "\n"
-        
+            
         if str(pods_consumed_memory) != pods[test_case_number]: # count more or less pods than should be
             logger.warning(str(pods_consumed_memory) + " pods consumed MEMORY (should:" + pods[test_case_number] + ")")
+        else:
+            logger.debug(str(pods_consumed_cpu) + " pods consumed MEMORY (should:" + pods[test_case_number] + ")")
     else:
         logger.debug("Can't get MEMORY metrics from Prometheus")
 
     tmp_results["cpu_used"] = value_of_cpu_used
     tmp_results["memory_used"] = value_of_memory_used
-    print(tmp_results)
-
+    #print(tmp_results)
 
 def write_results_to_file(id):
     # write to file
@@ -349,14 +315,83 @@ def write_results_to_file(id):
     file_name = application_name + "-" + pods[id] + "-" + cpu[id] + "-" + memory[id] + "-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S") + ".json"
     print(file_name)
 
-    with open("./results/" + file_name, "w") as res_file:
+    if not os.path.exists("./results/" + dir_name):
+        os.makedirs("./results/" + dir_name)
+
+    with open("./results/" + dir_name + "/" + file_name, "w") as res_file:
         global results_to_file
         results = json.dumps(results_to_file)
         res_file.write(str(results))
         results_to_file = {}
 
+def is_pod_should_consume(pod_name):
+    # Because of Prometheus sometimes deleted pods spoiler statistics
+
+    # if too slow or need much memory enough to get from default namespace
+    pods = json.loads(os.popen("kubectl get pods --all-namespaces -o json").read()) # get pods in json
+
+    should_consume = False
+
+    for pod in pods["items"]:
+        if pod["metadata"]["name"] == pod_name and pod["status"]["phase"] == "Running":
+            # if still running the pod
+            should_consume = True
+    
+    return should_consume
+
 
 if __name__ == "__main__":
+
+    ### VARIABLES
+    #  This values come from a config yaml file
+    ###
+    if len(sys.argv) != 2:
+        print("Please give (one and only one) configuration yaml file")
+        sys.exit(-1)
+    else:
+        with open( str(sys.argv[1]) ) as config_file:
+            config = yaml.safe_load(config_file)
+
+            # get values from yaml
+            mode = config["develop"]["mode"]
+            log_level = config["develop"]["log_level"]
+            cluster_ip = config["cluster"]["ip"]
+            cluster_name = config["cluster"]["name"]
+            worker_node = config["cluster"]["worker_node"]
+            benchmark_node = config["cluster"]["benchmark_node"]
+            deploy_prometheus = config["prometheus"]["deploy"]
+            prometheus_node_port = config["prometheus"]["node_port"]
+            application_name = config["application"]["name"]
+            application_image = config["application"]["image"]
+            application_port = config["application"]["port"]
+            benchmark_tool = config["benchmark"]["tool"]["name"]
+            benchmark_image = config["benchmark"]["tool"]["image"]
+            benchmark_port = config["benchmark"]["tool"]["port"]
+            benchmark_time = config["benchmark"]["time"]
+            qps_min = int(config["benchmark"]["qps_min"])
+            qps_max = int(config["benchmark"]["qps_max"])
+            qps_granularity = int(config["benchmark"]["qps_granularity"])
+            pods = config["benchmark"]["pods"].split(",")
+            cpu = config["benchmark"]["cpu"].split(",")
+            memory = config["benchmark"]["memory"].split(",")
+            save_results = config["benchmark"]["save_results"]
+
+    results_to_file = {} # every component can add information (this will be written)
+    tmp_results = {}
+    dir_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "-" + application_name
+
+    ### INITIALIZE
+
+    # Setup logging
+    logger = logging.getLogger()
+    logger.setLevel(get_log_level(log_level)) # here set log level.
+    ch = logging.StreamHandler() # create console handler
+    formatter = logging.Formatter("%(asctime)s - %(levelname)-8s - %(message)s")
+    ch.setFormatter(formatter)
+    logger.addHandler(ch) # add the handlers to logger
+    logging.getLogger("urllib3").setLevel(logging.WARNING) # hope to disable requests libary logging (don't spam my logging infos)
+
+
     start = str(datetime.datetime.now())
     results_to_file["start"] = start
 
