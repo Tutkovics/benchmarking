@@ -1,6 +1,6 @@
 develop:
   mode: "developp" # some functions need to call in different mode (eg: benchmark, develop)
-  log_level: "warning"
+  log_level: "debug"
 cluster:
   ip: "192.168.99.107"
   name: "szakdoga" # configure kubectl in multicluster environment
@@ -10,16 +10,16 @@ prometheus:
   deploy: "False"
   node_port: "30000" # doesn't take affect
 application:
-  name: "nginx"
-  image: "nginx:1.17" #nginx:latest
+  name: "nodejs"
+  image: hello-world-image" # add explicit version number
   port: "80" # port to open in pods
 benchmark:
   tool:
     name: "fortio"
-    image: "fortio/fortio:1.3.1" #fortio/fortio:latest_release
+    image: "fortio/fortio:1.3.1"
     port: "8080"
   time: "60" # benchmark run time
-  qps_min: "100" # minimum requested qps
+  qps_min: "0" # minimum requested qps
   qps_max: "4000" # maximum requested qps
   qps_granularity: "100" # granularity of qps
   # batch measurement

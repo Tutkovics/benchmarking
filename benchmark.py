@@ -292,7 +292,7 @@ def calculate_usages(prometheus_cpu_res, prometheus_memory_res, test_case_number
 
     if prometheus_memory_res["status"] == "success": # api responded with success status 
         logger.debug("Successfully get MEMORY metrics from Prometheus")
-        for pod in prometheus_cpu_res["data"]["result"]:
+        for pod in prometheus_memory_res["data"]["result"]:
             # delete pod statistic which was not increment usage
             if is_pod_should_consume( pod["metric"]["pod"]):
                 pods_consumed_memory += 1

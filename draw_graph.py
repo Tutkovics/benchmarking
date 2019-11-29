@@ -14,11 +14,17 @@ def plot_from_file(json_file):
         x = []
         y = []  
 
+        last_qps = 0;
+
         for measurement in data["measurements"]:
-            # append all data point from measurement
-            x.append(measurement["actualQPS"])
-            # get memory or cpu  usage depends on command line variable
-            y.append(measurement[str(sys.argv[1]) + "_used"] / int(data["benchmark_time"]))
+            if(measurement["actualQPS"] > last_qps):
+                # append all data point from measurement
+                x.append(measurement["actualQPS"])
+                # get memory or cpu  usage depends on command line variable
+                y.append(measurement[str(sys.argv[1]) + "_used"] / int(data["benchmark_time"]))
+
+                last_qps = measurement["actualQPS"]
+            
 
         plt.plot(x, y, label=data["number_of_pod"] + "# pods")
 
@@ -35,12 +41,14 @@ if __name__ == "__main__":
 
         # setup label for x-, y-axis and graph title
         if(str(sys.argv[1]) == "cpu"):
-            plt.ylabel("mCPU")
+            plt.ylabel("Σ mCPU / sec")
             plt.title('CPU usage in different qps') 
         elif(str(sys.argv[1]) == "memory"):
-            plt.ylabel("memory")
+            plt.ylabel("Σ memory / sec")
             plt.title('Memory usage in different qps') 
 
         # visualize
+        plt.xlabel("QPS")
         plt.legend(loc='upper left')
+
         plt.show()
