@@ -49,6 +49,6 @@ if __name__ == "__main__":
 
         # visualize
         plt.xlabel("QPS")
-        plt.legend(loc='upper left')
+        plt.legend(loc='lower right')
 
         plt.show()

@@ -11,8 +11,8 @@ prometheus:
   node_port: "30000" # doesn't take affect
 application:
   name: "nodejs"
-  image: hello-world-image" # add explicit version number
-  port: "80" # port to open in pods
+  image: "tuti/node-prime:v2" # add explicit version number
+  port: "8080" # port to open in pods
 benchmark:
   tool:
     name: "fortio"
@@ -23,7 +23,7 @@ benchmark:
   qps_max: "4000" # maximum requested qps
   qps_granularity: "100" # granularity of qps
   # batch measurement
-  pods: "1,2,3,4" #, '2', '3', '4']" # number of application pods in measurements
-  cpu: "100m,100m,100m,100m,100m" #, '100m', '100m', '100m']" # cpu limit / pod
-  memory: "64Mi,64Mi,64Mi,64Mi,64Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
+  pods: "1,2,3,4" # number of application pods in measurements
+  cpu: "100m,100m,100m,100m" #, '100m', '100m', '100m']" # cpu limit / pod
+  memory: "64Mi,64Mi,64Mi,64Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
   save_results: "True" # save results to .json file

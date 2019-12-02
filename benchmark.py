@@ -128,7 +128,8 @@ def wait_for_start_pods():
     while(need_to_wait):
         need_to_wait = False
         # if too slow or need much memory enough to get from default namespace
-        pods = json.loads(os.popen("kubectl get pods --all-namespaces -o json").read()) # get pods in json
+	# intresting bug: /results/erdekes.txt
+        pods = json.loads(os.popen("kubectl get pods -o json").read()) # get pods in json
 
         for pod in pods["items"]:
             if pod["status"]["phase"] != "Running":
@@ -216,7 +217,7 @@ def run_measurement():
                 time.sleep(60)
             else:
                 timeout = 200 # set fortio timeout [ms]
-                url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
+                url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "/num/1000&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
                 logger.debug("Benchmarking on url: " + url_benchmark)
 
                 benchmark_res = json.loads((requests.get(url_benchmark)).text)

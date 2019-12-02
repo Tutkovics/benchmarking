@@ -1,6 +1,6 @@
 develop:
   mode: "developp" # some functions need to call in different mode (eg: benchmark, develop)
-  log_level: "warning"
+  log_level: "debug"
 cluster:
   ip: "192.168.99.107"
   name: "szakdoga" # configure kubectl in multicluster environment
