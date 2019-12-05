@@ -216,22 +216,34 @@ def run_measurement():
                 tmp_results["actualQPS"] = actualQPS
                 time.sleep(60)
             else:
-                timeout = 200 # set fortio timeout [ms]
-                url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "/num/1000&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
-                logger.debug("Benchmarking on url: " + url_benchmark)
+                if application_name == "memcached":
+                    # use different measurement and benchmark
+                    logger.debug("Use memtier benchmark tool")
+                    #os.system("kubectl run --generator=run-pod/v1 test --image=redislabs/memtier_benchmark -it -- memtier-benchmark --server=" + service_ip + " --port=" + application_port + " --protocol=memcache_text --json-out-file=memtier.json --requests=" + str(request_per_clients) +" --clients=10 --hide-histogram --run-count=1")
+                    actualQPS = requested_qps # end of for cicle check
+                else:
+                    timeout = 200 # set fortio timeout [ms]
+                    # increment timeout for cat vs dog measurement
+                    # Can't serve enough query (20-->15.6627346603437)
+                    # Can't serve enough query (2-->1.5601683498534589)
+                    # timeout = 1000
 
-                benchmark_res = json.loads((requests.get(url_benchmark)).text)
+                    # only for nodejs: url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "/num/1000&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
+                    url_benchmark = "http://" + cluster_ip + ":30001/fortio/?labels=&url=http://" + service_ip + ":" + application_port + "&qps=" + str(requested_qps) + "&t=" + benchmark_time + "s&n=&c=10&p=50%2C+75%2C+90%2C+99%2C+99.9&r=0.0001&runner=http&grpc-ping-delay=0&json=on&load=Start&timeout=" + str(timeout) + "ms"
+                    logger.debug("Benchmarking on url: " + url_benchmark)
 
-                actualQPS = benchmark_res["ActualQPS"]
-                tmp_results["actualQPS"] = actualQPS
-                tmp_results["fortio_req_qps"] = benchmark_res["RequestedQPS"]
-                tmp_results["fortio_threads"] = benchmark_res["NumThreads"]
-                tmp_results["min_response"] = benchmark_res["DurationHistogram"]["Min"]
-                tmp_results["max_response"] = benchmark_res["DurationHistogram"]["Max"]
-                tmp_results["avg_response"] = benchmark_res["DurationHistogram"]["Avg"]
-                tmp_results["dev_response"] = benchmark_res["DurationHistogram"]["StdDev"]
-                tmp_results["response_histogram"] = benchmark_res["DurationHistogram"]["Data"]
-            
+                    benchmark_res = json.loads((requests.get(url_benchmark)).text)
+
+                    actualQPS = benchmark_res["ActualQPS"]
+                    tmp_results["actualQPS"] = actualQPS
+                    tmp_results["fortio_req_qps"] = benchmark_res["RequestedQPS"]
+                    tmp_results["fortio_threads"] = benchmark_res["NumThreads"]
+                    tmp_results["min_response"] = benchmark_res["DurationHistogram"]["Min"]
+                    tmp_results["max_response"] = benchmark_res["DurationHistogram"]["Max"]
+                    tmp_results["avg_response"] = benchmark_res["DurationHistogram"]["Avg"]
+                    tmp_results["dev_response"] = benchmark_res["DurationHistogram"]["StdDev"]
+                    tmp_results["response_histogram"] = benchmark_res["DurationHistogram"]["Data"]
+
 
             time.sleep(30) # deleay to send all statistics
             end_time = time.time()
@@ -243,9 +255,16 @@ def run_measurement():
 
             # if cluster setup can't answer more than requseted_qps 90%
             # let write last results and break
+            
+
             if( abs(float(actualQPS) - requested_qps  ) > (requested_qps * 0.1) ):
                 logger.debug("Can't serve enough query (" + str(requested_qps) + "-->" + str(actualQPS) + ")")
                 break
+            else:
+                if(application_name == "memcached"):
+                    if((end_time - start_time) > 90):
+                        pass
+                logger.debug("Served enough query (" + str(requested_qps) + "-->" + str(actualQPS) + ")")
 
 
         results_to_file["measurements"] = json_array # convert to string for bugfix
@@ -326,7 +345,7 @@ def write_results_to_file(id):
         results_to_file = {}
 
 def is_pod_should_consume(pod_name):
-    # Because of Prometheus sometimes deleted pods spoiler statistics
+    # Because of Prometheus sometimes deleted pods spoil statistics
 
     # if too slow or need much memory enough to get from default namespace
     pods = json.loads(os.popen("kubectl get pods --all-namespaces -o json").read()) # get pods in json
@@ -339,6 +358,7 @@ def is_pod_should_consume(pod_name):
             should_consume = True
     
     return should_consume
+
 
 
 if __name__ == "__main__":

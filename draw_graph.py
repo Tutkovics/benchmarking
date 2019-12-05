@@ -5,6 +5,7 @@
 import matplotlib.pyplot as plt 
 import json
 import sys
+import os
 
 def plot_from_file(json_file):
     # function to add new line for graph
@@ -14,19 +15,38 @@ def plot_from_file(json_file):
         x = []
         y = []  
 
-        last_qps = 0;
+        last_qps = -1 #because show 0 qps
 
         for measurement in data["measurements"]:
             if(measurement["actualQPS"] > last_qps):
                 # append all data point from measurement
                 x.append(measurement["actualQPS"])
                 # get memory or cpu  usage depends on command line variable
-                y.append(measurement[str(sys.argv[1]) + "_used"] / int(data["benchmark_time"]))
+                resource_usage = measurement[str(sys.argv[1]) + "_used"] / int(data["benchmark_time"])
+                y.append(resource_usage)
 
                 last_qps = measurement["actualQPS"]
+
+        print("# pods: " + data["number_of_pod"])
+        if str(data["number_of_pod"]) == str(1):
+            print("Call function predict")
+            #our_function(data["number_of_pod"], data, 3)
+            
             
 
         plt.plot(x, y, label=data["number_of_pod"] + "# pods")
+
+def our_function(original_pod_number, original_measurements, new_pod_number):
+    x = []
+    y = []
+
+    for measurement in original_measurements["measurements"]:
+        x.append(measurement["actualQPS"])
+        y.append(measurement[str(sys.argv[1]) + "_used"] / int(original_measurements["benchmark_time"]) / int(original_pod_number) * new_pod_number)
+
+    plt.plot(x, y, label="Predicted value to: " + str(new_pod_number))
+    
+
 
 
 if __name__ == "__main__":
@@ -41,10 +61,10 @@ if __name__ == "__main__":
 
         # setup label for x-, y-axis and graph title
         if(str(sys.argv[1]) == "cpu"):
-            plt.ylabel("Σ mCPU / sec")
+            plt.ylabel("SUM mCPU / sec")
             plt.title('CPU usage in different qps') 
         elif(str(sys.argv[1]) == "memory"):
-            plt.ylabel("Σ memory / sec")
+            plt.ylabel("SUM memory / sec") #
             plt.title('Memory usage in different qps') 
 
         # visualize

@@ -1,6 +1,6 @@
 develop:
-  mode: "developp" # some functions need to call in different mode (eg: benchmark, develop)
-  log_level: "debug"
+  mode: "benchmark" # some functions need to call in different mode (eg: benchmark, develop)
+  log_level: "debug" # can reduce log spams: warning level log
 cluster:
   ip: "192.168.99.107"
   name: "szakdoga" # configure kubectl in multicluster environment
@@ -8,7 +8,7 @@ cluster:
   benchmark_node: "minikube"
 prometheus:
   deploy: "False"
-  node_port: "30000" # doesn't take affect
+  node_port: "30000" # doesn't take effect
 application:
   name: "nodejs"
   image: "tuti/node-prime:v2" # add explicit version number
