@@ -18,11 +18,16 @@ def plot_from_file(json_files):
 
         with open(json_file) as json_result:
             raw_data = json.load(json_result)
-            select_by_pod_number(raw_data, raw_data["number_of_pod"])
+            select_by_pod_number(raw_data)
 
 
-def select_by_pod_number(raw_data, pod_number):
-    
+def select_by_pod_number(raw_data):
+    pod_number = raw_data["number_of_pod"]
+    cpu_limit = raw_data["cpu_limit"]
+    memory_limit = raw_data["memory_limit"]
+
+    unique = str(pod_number) + "pod-" + cpu_limit + "CPU-" + memory_limit
+
     tmp = []
     last_qps = -1
 
@@ -32,10 +37,10 @@ def select_by_pod_number(raw_data, pod_number):
             tmp.append([measurement["requested_qps"], measurement["actualQPS"], measurement["cpu_used"]/ int(raw_data["benchmark_time"]), measurement["memory_used"]/ int(raw_data["benchmark_time"])])
             last_qps = measurement["actualQPS"]
 
-    if str(pod_number) in datas:
-        datas[str(pod_number)].append(tmp)
+    if unique in datas:
+        datas[unique].append(tmp)
     else:
-        datas[str(pod_number)] = []
+        datas[unique] = []
 
 
 def data_process_and_visualize():
@@ -70,7 +75,7 @@ def data_process_and_visualize():
         #print(x)
         #print(y)
 
-        plt.plot(x, y, label=key+"# pods")
+        plt.plot(x, y, label=key)
 
     if(str(sys.argv[1]) == "cpu"):
         plt.ylabel("SUM CPU / sec")
