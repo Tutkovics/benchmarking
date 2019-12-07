@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
         # setup label for x-, y-axis and graph title
         if(str(sys.argv[1]) == "cpu"):
-            plt.ylabel("SUM mCPU / sec")
+            plt.ylabel("SUM CPU / sec")
             plt.title('CPU usage in different qps') 
         elif(str(sys.argv[1]) == "memory"):
             plt.ylabel("SUM memory / sec") #
