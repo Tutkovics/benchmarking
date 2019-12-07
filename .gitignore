@@ -3,7 +3,7 @@ tmp/
 
 # latest Prometheus and banchmark results
 results/latest.json
-results/*
+
 
 # npm install generated
 node-js/node_modules
