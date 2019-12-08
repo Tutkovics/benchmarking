@@ -10,7 +10,7 @@ prometheus:
   deploy: "False"
   node_port: "30000" # doesn't take affect
 application:
-  name: "nginx"
+  name: "bugfix"
   image: "nginx:1.17" #nginx:latest
   port: "80" # port to open in pods
 benchmark:
@@ -20,7 +20,7 @@ benchmark:
     port: "8080"
   time: "60" # benchmark run time
   qps_min: "0" # minimum requested qps
-  qps_max: "4000" # maximum requested qps
+  qps_max: "100" # maximum requested qps
   qps_granularity: "100" # granularity of qps
   # batch measurement
   pods: "1,2,3,4" #, '2', '3', '4']" # number of application pods in measurements

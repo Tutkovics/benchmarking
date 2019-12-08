@@ -6,6 +6,12 @@
     "memory_limit": "64Mi",
     "measurements": [
         {
+            "requested_qps": 0,
+            "actualQPS": 0,
+            "cpu_used": 0.13946076,
+            "memory_used": 16023552.0
+        },
+        {
             "requested_qps": 100,
             "actualQPS": 99.99069671892424,
             "fortio_req_qps": "100",

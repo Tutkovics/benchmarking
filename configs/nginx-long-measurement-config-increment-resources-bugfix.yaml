@@ -20,10 +20,10 @@ benchmark:
     port: "8080"
   time: "60" # benchmark run time
   qps_min: "0" # minimum requested qps
-  qps_max: "4000" # maximum requested qps
+  qps_max: "100" # maximum requested qps
   qps_granularity: "100" # granularity of qps
   # batch measurement
   pods: "1,2,3,4" #, '2', '3', '4']" # number of application pods in measurements
-  cpu: "100m,100m,100m,100m,100m" #, '100m', '100m', '100m']" # cpu limit / pod
+  cpu: "200m,200m,200m,200m,200m" #, '100m', '100m', '100m']" # cpu limit / pod
   memory: "64Mi,64Mi,64Mi,64Mi,64Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
   save_results: "True" # save results to .json file
