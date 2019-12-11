@@ -10,7 +10,7 @@ prometheus:
   deploy: "False"
   node_port: "30000" # doesn't take affect
 application:
-  name: "nginx"
+  name: "nginx-increment-bugfix"
   image: "nginx:1.17" #nginx:latest
   port: "80" # port to open in pods
 benchmark:

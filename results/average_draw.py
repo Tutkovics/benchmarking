@@ -81,29 +81,33 @@ def data_process_and_visualize():
                 
                 last_qps = statistics.mean(colletcion[point]["actual"])
 
-        
+        predicted = 2
 
-        if "1pod" in key:
-            predict_own_usage(colletcion,1, 3, 50, "Predict from 1 pod version")
-        elif "2pod" in key:
-            predict_own_usage(colletcion,2, 3, 50, "Predict from 2 pod version")
-        elif "3pod" in key:
-            pass
-            #predict_own_usage(colletcion,3, 3, 50, "Predict from 3 pod version")
-        elif "4pod" in key:
-            predict_own_usage(colletcion,4, 3, 50, "Predict from 4 pod version")
-        
-        if "1pod" in key: 
+        if "-1pod" in key:
+            #continue
+            predict_own_usage(colletcion,1, predicted, 50, "Predict from 1 pod version")
+        elif "-2pod" in key:
+            #continue
+            predict_own_usage(colletcion,2, predicted, 50, "Predict from 2 pod version")
+        elif "-3pod" in key:
+            
+            predict_own_usage(colletcion,3, predicted, 50, "Predict from 3 pod version")
+        elif "-4pod" in key:
+            predict_own_usage(colletcion,4, predicted, 50, "Predict from 4 pod version")
+
+        #if str(predicted)+"pod" in key:
+        if True: 
             plt.plot(x, y, label=key)
 
     if(str(sys.argv[1]) == "cpu"):
         plt.ylabel("SUM CPU / sec")
-        plt.title('CPU usage in different qps') 
+        #plt.title('CPU usage in different qps') 
     elif(str(sys.argv[1]) == "memory"):
         plt.ylabel("SUM memory / sec") #
-        plt.title('Memory usage in different qps') 
+        #plt.title('Memory usage in different qps') 
 
     # visualize
+    plt.title(str(sys.argv[-1]))
     plt.xlabel("QPS")
     plt.legend(loc='lower right')
 
@@ -132,23 +136,30 @@ def predict_own_usage(raw_data, old_pod_number, new_pod_number, granularity, plo
     y = []
 
     # get data points to show
-    for ask_qps in range(0, int(Q), granularity):
+    for ask_qps in range(1, int(Q), granularity):
         last_point = [0,0]
 
         # only if qps numbers in increment order
         for key in raw_data:
             find_qps = ask_qps * (old_pod_number / new_pod_number)
+
+            tmp_usage = 0
+            if(str(sys.argv[1]) == "cpu"):
+                tmp_usage = statistics.mean(raw_data[key]["cpu"])
+            elif(str(sys.argv[1]) == "memory"):
+                tmp_usage = statistics.mean(raw_data[key]["memory"])
+
             if (find_qps <= statistics.mean(raw_data[key]["actual"])) and (find_qps >= last_point[0]):
                 if find_qps == statistics.mean(raw_data[key]["actual"]):
                     x.append(ask_qps)
-                    y.append(statistics.mean(raw_data[key]["cpu"]))
+                    y.append(tmp_usage)
                 else:
                     x.append(ask_qps)
-                    new_y = answer_y(last_point[0], last_point[1], statistics.mean(raw_data[key]["actual"]),statistics.mean(raw_data[key]["cpu"]), find_qps )
+                    new_y = answer_y(last_point[0], last_point[1], statistics.mean(raw_data[key]["actual"]), tmp_usage, find_qps )
                     
                     y.append(new_y*(new_pod_number / old_pod_number))
                 
-            last_point = [statistics.mean(raw_data[key]["actual"]), statistics.mean(raw_data[key]["cpu"])]
+            last_point = [statistics.mean(raw_data[key]["actual"]), tmp_usage]
 
     plt.plot(x,y,label=plot_label)
 
@@ -163,7 +174,7 @@ if __name__ == "__main__":
         sys.exit(-1)
     else:
         # call function to calculate average and add datapoints
-        plot_from_file(sys.argv[2:]) 
+        plot_from_file(sys.argv[2:-1]) 
         data_process_and_visualize()
         #for key in datas:
         #    print(key)

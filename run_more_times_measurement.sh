@@ -1,7 +1,7 @@
 #!/bin/bash
-for i in {1..5} #deadline is comming
+for i in {1..3} #deadline is comming
 do
     echo "=== Start measurement #$i ==="
-    time python3 benchmark.py configs/nginx-long-measurement-config-bugfix.yaml
+    time python3 benchmark.py configs/apache-measurement-config-increment.yaml
     echo "=== End ==="
 done
