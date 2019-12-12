@@ -24,6 +24,6 @@ benchmark:
   qps_granularity: "100" # granularity of qps
   # batch measurement
   pods: "1,2,3,4" # number of application pods in measurements
-  cpu: "100m,100m,100m,100m" #, '100m', '100m', '100m']" # cpu limit / pod
+  cpu: "50m,50m,50m,50m" #, '100m', '100m', '100m']" # cpu limit / pod
   memory: "64Mi,64Mi,64Mi,64Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
   save_results: "True" # save results to .json file

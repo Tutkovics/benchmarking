@@ -35,7 +35,7 @@ def select_by_pod_number(raw_data, name):
     for measurement in raw_data["measurements"]:
      
         if last_qps < measurement["actualQPS"]:
-            tmp.append([measurement["requested_qps"], measurement["actualQPS"], measurement["cpu_used"]/ int(raw_data["benchmark_time"]), measurement["memory_used"]/ int(raw_data["benchmark_time"])])
+            tmp.append([measurement["requested_qps"], measurement["actualQPS"], measurement["cpu_used"]/ 100, measurement["memory_used"]/1000]) # not divide cpu usage by: int(raw_data["benchmark_time"]) and memory usage by: int(raw_data["benchmark_time"])
             last_qps = measurement["actualQPS"]
 
     if unique in datas:
@@ -83,33 +83,37 @@ def data_process_and_visualize():
 
         predicted = 2
 
-        if "-1pod" in key:
+        if "1pod" in key:
             #continue
             predict_own_usage(colletcion,1, predicted, 50, "Predict from 1 pod version")
         elif "-2pod" in key:
             #continue
             predict_own_usage(colletcion,2, predicted, 50, "Predict from 2 pod version")
-        elif "-3pod" in key:
+        elif "3pod" in key:
             
             predict_own_usage(colletcion,3, predicted, 50, "Predict from 3 pod version")
-        elif "-4pod" in key:
+        elif "4pod" in key:
             predict_own_usage(colletcion,4, predicted, 50, "Predict from 4 pod version")
 
-        #if str(predicted)+"pod" in key:
-        if True: 
-            plt.plot(x, y, label=key)
+        if str(predicted)+"pod" in key:
+        #if True:
+            if "bugfix" in key:
+                 plt.plot(x, y, label=key.replace("bugfix", "nginx"))
+            else:
+                plt.plot(x, y, label=key)
 
     if(str(sys.argv[1]) == "cpu"):
-        plt.ylabel("SUM CPU / sec")
+        plt.ylabel("CPU usage (sec)")
         #plt.title('CPU usage in different qps') 
     elif(str(sys.argv[1]) == "memory"):
-        plt.ylabel("SUM memory / sec") #
+        plt.ylabel("Memory usage (kilobyte)") #
         #plt.title('Memory usage in different qps') 
 
     # visualize
     plt.title(str(sys.argv[-1]))
     plt.xlabel("QPS")
     plt.legend(loc='lower right')
+
 
     plt.show()
 

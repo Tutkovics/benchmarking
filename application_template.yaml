@@ -28,6 +28,11 @@ spec:
             memory: "[MEMORY]"
         ports:
         - containerPort: [APPLICATION_PORT]
+        env:
+        - name: ALLOC_HEAP_MB
+          value: "2"
+        - name: MAX_HEAP_SIZE_MB
+          value: "300"
       nodeName: [WORKER_NODE] # if more worker node presented should use below:
       #nodeSelector:
         #type: worker
