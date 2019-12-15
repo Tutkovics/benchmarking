@@ -10,8 +10,8 @@ prometheus:
   deploy: "False"
   node_port: "30000" # doesn't take affect
 application:
-  name: "test-jvm"
-  image: "valentinomiazzo/jvm-memory-test:latest" # add explicit version number
+  name: "nginx-short2"
+  image: "nginx:1.17" # add explicit version number
   port: "80" # port to open in pods
 benchmark:
   tool:
@@ -19,11 +19,11 @@ benchmark:
     image: "fortio/fortio:latest_release"
     port: "8080"
   time: "60" # benchmark run time
-  qps_min: "40000" # minimum requested qps
+  qps_min: "400" # minimum requested qps
   qps_max: "40000" # maximum requested qps
   qps_granularity: "100" # granularity of qps
   # batch measurement
   pods: "1" #, '2', '3', '4']" # number of application pods in measurements
   cpu: "100m" #, '100m', '100m', '100m']" # cpu limit / pod
-  memory: "150Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
+  memory: "64Mi" #, '64Mi', '64Mi', '64Mi']" # memory limit / pod
   save_results: "True" # save results to .json file
