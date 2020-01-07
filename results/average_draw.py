@@ -35,7 +35,17 @@ def select_by_pod_number(raw_data, name):
     for measurement in raw_data["measurements"]:
      
         if last_qps < measurement["actualQPS"]:
-            tmp.append([measurement["requested_qps"], measurement["actualQPS"], measurement["cpu_used"]/ 115, measurement["memory_used"]/1000]) # not divide cpu usage by: int(raw_data["benchmark_time"]) and memory usage by: int(raw_data["benchmark_time"])
+            min_res, max_res, avg_res = "N/A"
+            if(last_qps != -1 ): # szóbeli beszámolóhoz
+                min_res = measurement["min_response"]
+                max_res = measurement["max_response"]
+                avg_res = measurement["avg_response"]
+            else:
+                min_res = 0
+                max_res = 0
+                avg_res = 0
+
+            tmp.append([measurement["requested_qps"], measurement["actualQPS"], measurement["cpu_used"]/ 115, measurement["memory_used"]/1000, min_res, max_res, avg_res]) # not divide cpu usage by: int(raw_data["benchmark_time"]) and memory usage by: int(raw_data["benchmark_time"])
             last_qps = measurement["actualQPS"]
 
     if unique in datas:
@@ -57,13 +67,19 @@ def data_process_and_visualize():
                     colletcion[str(measurement[i][0])]["actual"].append(measurement[i][1])
                     colletcion[str(measurement[i][0])]["cpu"].append(measurement[i][2])
                     colletcion[str(measurement[i][0])]["memory"].append(measurement[i][3])
+                    colletcion[str(measurement[i][0])]["min"].append(measurement[i][4])
+                    colletcion[str(measurement[i][0])]["max"].append(measurement[i][5])
+                    colletcion[str(measurement[i][0])]["avg"].append(measurement[i][6])
 
 
                 else:
                     colletcion[str(measurement[i][0])] = {
                         "actual" : [measurement[i][1]],
                         "cpu" : [measurement[i][2]],
-                        "memory" : [measurement[i][3]]
+                        "memory" : [measurement[i][3]],
+                        "min" : [measurement[i][4]],
+                        "max" : [measurement[i][5]],
+                        "avg" : [measurement[i][6]]
                     }
 
         x = []
@@ -78,6 +94,8 @@ def data_process_and_visualize():
                     y.append(statistics.mean(colletcion[point]["cpu"]))
                 elif str(sys.argv[1]) == "memory":
                     y.append(statistics.mean(colletcion[point]["memory"]))
+                
+                print(key + str(statistics.mean(colletcion[point]["actual"])) + " MIN: " + str(statistics.mean(colletcion[point]["min"])) + " MAX: " + str(statistics.mean(colletcion[point]["max"])) + " AVG: " + str(statistics.mean(colletcion[point]["avg"])))
                 
                 last_qps = statistics.mean(colletcion[point]["actual"])
 
@@ -167,7 +185,6 @@ def predict_own_usage(raw_data, old_pod_number, new_pod_number, granularity, plo
 
     plt.plot(x,y,label=plot_label)
 
-    
 
 
 
