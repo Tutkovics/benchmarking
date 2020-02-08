@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Usage: average_draw.py [cpu|memory] [resultfile1 [... resultfile2]]
+# Usage: average_draw.py [cpu|memory|response] [resultfile1 [... resultfile2]] "Name for the chart"
 
 import matplotlib.pyplot as plt 
 import json
@@ -8,21 +8,24 @@ import sys
 import os
 import statistics
 
-#all_collections = {}
+#collection to sort datas
 datas = {}
 
 def plot_from_file(json_files):
     # function to add new line for graph
 
     for json_file in json_files:
-
+    #read all given result files 
         with open(json_file) as json_result:
+            #convert to json object
             raw_data = json.load(json_result)
+            #get tested application name eg: "nginx"
             name = json_file.split("/")[1].split("-")[0]
             select_by_pod_number(raw_data, name)
 
 
 def select_by_pod_number(raw_data, name):
+    #create unique name for each data line
     pod_number = raw_data["number_of_pod"]
     cpu_limit = raw_data["cpu_limit"]
     memory_limit = raw_data["memory_limit"]
@@ -33,7 +36,7 @@ def select_by_pod_number(raw_data, name):
     last_qps = -1
 
     for measurement in raw_data["measurements"]:
-     
+        #measurement: from 1 file, given QPS number datas 
         if last_qps < measurement["actualQPS"]:
             min_res, max_res, avg_res = "N/A"
             if(last_qps != -1 ): # szóbeli beszámolóhoz
@@ -48,6 +51,7 @@ def select_by_pod_number(raw_data, name):
             tmp.append([measurement["requested_qps"], measurement["actualQPS"], measurement["cpu_used"]/ 115, measurement["memory_used"]/1000, min_res, max_res, avg_res]) # not divide cpu usage by: int(raw_data["benchmark_time"]) and memory usage by: int(raw_data["benchmark_time"])
             last_qps = measurement["actualQPS"]
 
+    #add all stats to collection
     if unique in datas:
         datas[unique].append(tmp)
     else:
@@ -89,26 +93,35 @@ def data_process_and_visualize():
 
         for point in colletcion:
             if last_qps < statistics.mean(colletcion[point]["actual"]):
-                x.append(statistics.mean(colletcion[point]["actual"]))
+                if last_qps > -1: #temporary solution for response time charts
+                    x.append(statistics.mean(colletcion[point]["actual"]))
                 if str(sys.argv[1]) == "cpu":
                     y.append(statistics.mean(colletcion[point]["cpu"]))
                 elif str(sys.argv[1]) == "memory":
                     y.append(statistics.mean(colletcion[point]["memory"]))
-                
-                print(key + str(statistics.mean(colletcion[point]["actual"])) + " MIN: " + str(statistics.mean(colletcion[point]["min"])) + " MAX: " + str(statistics.mean(colletcion[point]["max"])) + " AVG: " + str(statistics.mean(colletcion[point]["avg"])))
+
+                #don't have statistic from 0 qps
+                if last_qps > -1:
+                    if str(sys.argv[1]) == "avg":
+                        y.append(statistics.mean(colletcion[point]["avg"]))
+                    elif str(sys.argv[1]) == "max":
+                        y.append(statistics.mean(colletcion[point]["max"]))
+                    elif str(sys.argv[1]) == "min":
+                        y.append(statistics.mean(colletcion[point]["min"]))
+
+                #print(key + str(statistics.mean(colletcion[point]["actual"])) + " MIN: " + str(statistics.mean(colletcion[point]["min"])) + " MAX: " + str(statistics.mean(colletcion[point]["max"])) + " AVG: " + str(statistics.mean(colletcion[point]["avg"])))
                 
                 last_qps = statistics.mean(colletcion[point]["actual"])
 
+        #number of pods environment want to predict
         predicted = 2
 
+        #remove "-" if want to predict from 1,2,3,4 datasets
         if "-1pod" in key:
-            #continue
             predict_own_usage(colletcion,1, predicted, 50, "Predict from 1 pod version")
         elif "-2pod" in key:
-            #continue
             predict_own_usage(colletcion,2, predicted, 50, "Predict from 2 pod version")
         elif "-3pod" in key:
-            
             predict_own_usage(colletcion,3, predicted, 50, "Predict from 3 pod version")
         elif "-4pod" in key:
             predict_own_usage(colletcion,4, predicted, 50, "Predict from 4 pod version")
@@ -125,12 +138,15 @@ def data_process_and_visualize():
         #plt.title('CPU usage in different qps') 
     elif(str(sys.argv[1]) == "memory"):
         plt.ylabel("Memory usage (kilobyte)") #
+    elif(str(sys.argv[1]) == "avg" or str(sys.argv[1]) == "max" or str(sys.argv[1]) == "min"):
+        plt.ylabel("Time (sec)") 
         #plt.title('Memory usage in different qps') 
 
     # visualize
     plt.title(str(sys.argv[-1]))
     plt.xlabel("QPS")
     plt.legend(loc='lower right')
+    #plt.legend(loc='upper right')
 
 
     plt.show()
@@ -191,13 +207,9 @@ def predict_own_usage(raw_data, old_pod_number, new_pod_number, granularity, plo
 if __name__ == "__main__":
     if len(sys.argv) < 3 :
         # not enough parameter was given
-        print("Please choose memory or cpu usage and give results json file")
+        print("python3 average_draw.py [cpu|memory|response] [resultfile1 [... resultfile2]] 'Name for the chart'")
         sys.exit(-1)
     else:
         # call function to calculate average and add datapoints
         plot_from_file(sys.argv[2:-1]) 
         data_process_and_visualize()
-        #for key in datas:
-        #    print(key)
-        #print(datas["nodejs: 1pod-200mCPU-64Mi"])
-        #print_data()

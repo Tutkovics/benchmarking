@@ -1,3 +1,7 @@
+######################
+# Final drawing script: results/average_draw.py
+######################
+
 #!/usr/bin/env python3
 
 # Usage: draw_graph.py [cpu|memory] [resultfile1 [... resultfile2]]

@@ -12,5 +12,4 @@ Mérési eredményekből valami modellt összerakni
 
 ## Szenvedések
 - python dict() copy by reference
-- Promethesu statistic comes not in time 
-- 
+- Prometheus statistic comes not in time
