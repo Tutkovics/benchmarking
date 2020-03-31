@@ -2,6 +2,6 @@
 for i in {1..3} #deadline is comming
 do
     echo "=== Start measurement #$i ==="
-    time python3 benchmark.py configs/apache-measurement-config-increment.yaml
+    time python benchmark.py configs/apache-measurement-config-increment.yaml
     echo "=== End ==="
 done

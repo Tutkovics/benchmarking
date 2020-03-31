@@ -2,12 +2,12 @@ develop:
   mode: "benchmark" # some functions need to call in different mode (eg: benchmark, develop)
   log_level: "debug" # can reduce log spams: warning level log
 cluster:
-  ip: "192.168.99.107"
-  name: "szakdoga" # configure kubectl in multicluster environment
+  ip: "192.168.99.109"
+  name: "minikube" # configure kubectl in multicluster environment (see: ~/.kube/config)
   worker_node:  "minikube" # worker node's name
   benchmark_node: "minikube"
 prometheus:
-  deploy: "False"
+  deploy: "True"
   node_port: "30000" # doesn't take effect
 application:
   name: "apache-increment"

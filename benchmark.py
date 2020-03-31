@@ -48,7 +48,7 @@ def cluster_config():
 
     # need to deploy prometheus
     if(deploy_prometheus):
-        if (os.system("kubectl apply -f prometheus/ " + dev_null()) == 0):
+        if (os.system("kubectl apply -f applications/prometheus/ " + dev_null()) == 0):
             # command run with success
             logger.debug("Prometheus successfully started")
         else:
@@ -60,7 +60,7 @@ def cluster_config():
 def deploy_application(test_case_number):
     logger.debug("Start deploy application")
     with open("application_template.yaml") as template_file:
-        with open("./tmp/live_applicatin_deployment.yaml", "w") as live_file:
+        with open("./tmp/live_applicatin_deployment.yaml", "w") as live_file:  #What if /tmp not exist
             for line in template_file:
                 # dictioanry for replace missing values in template configuration
                 replace = {"[APPLICATION_NAME]" : application_name, "[POD_COUNT]" : pods[test_case_number], "[APPLICATION_IMAGE]" : application_image, "[CPU]" : cpu[test_case_number], "[MEMORY]" : memory[test_case_number], "[APPLICATION_PORT]" : application_port, "[WORKER_NODE]" : worker_node}

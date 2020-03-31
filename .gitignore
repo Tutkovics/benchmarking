@@ -13,3 +13,6 @@ node-js/package-lock.json
 
 # emberd git repo
 catvsdog/
+
+#virtualenv folder
+env/
