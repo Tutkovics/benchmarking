@@ -16,3 +16,6 @@ catvsdog/
 
 #virtualenv folder
 env/
+
+__pycache__/
+archive/
