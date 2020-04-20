@@ -2,6 +2,9 @@
 
 Create measurements over Kubernetes and profiling application.
 
+## Under refactor
+  Will use Python kubernetes client and helm install instead deploy from manually created .yaml files.
+
 ## Usage
 1. **Create a new configuration file**
 
