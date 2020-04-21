@@ -1,15 +1,6 @@
-# here are the live config .yaml files
+# Short term project files
 tmp/
 
-# latest Prometheus and banchmark results
-results/latest.json
-
-
-# npm install generated
-node-js/node_modules
-node-js/package-lock.json
-# report sketch until have content
-#report_sketch.md
-
-# emberd git repo
-catvsdog/
+# Other folders
+env/
+__pycache__/

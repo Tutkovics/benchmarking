@@ -1,1 +1,0 @@
-{"start": "2019-12-09 13:47:52.326808", "number_of_pod": "1", "benchmark_time": "60", "cpu_limit": "200m", "memory_limit": "64Mi", "measurements": [{"requested_qps": 0, "actualQPS": 0, "cpu_used": 0.126089548, "memory_used": 6103040.0}]}

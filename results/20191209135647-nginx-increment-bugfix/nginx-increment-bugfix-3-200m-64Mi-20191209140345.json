@@ -1,1 +1,0 @@
-{"number_of_pod": "3", "benchmark_time": "60", "cpu_limit": "200m", "memory_limit": "64Mi", "measurements": [{"requested_qps": 0, "actualQPS": 0, "cpu_used": 0.407691472, "memory_used": 19234816.0}]}
