@@ -1,22 +1,35 @@
 # Application profiling
 
-Create measurements over Kubernetes and profiling application.
+Offline profiling applications in Kubernetes cluster. Run more measurements and get efficient scaling information.
 
 ## Under refactor
-  Will use Python kubernetes client and helm install instead deploy from manually created .yaml files.
+  Will use Python kubernetes client and helm install instead deploy from manually created .yaml files. Hopefully we can use Prometheus offical python libary.
 
 ## Usage
-1. **Create a new configuration file**
+1. **Get project**
+  Clone the repo:
+  `git clone git@github.com:Tutkovics/benchmarking.git`
 
-  Examples under `configs` directory. You can configure cluster, benchmarking and load generator tool. Setup the benchmark environment. (Eg: min-, max QPS and pods' resource limits )
+  Install Python requirements:
+  `pip3 install -r requirements.txt`
 
-2. **Start the benchmarking**
+  Run the profiling:
+  `python manin.py <config_file.yaml>`
 
-  Start master script: `python3 benchmark.py your-config.yaml`. Result goes to `results` directory. 
-  Full benchmark and visualize flowchart:
+2. **Cluster requirements**
+  - Has installed Helm Tiller pod. (only one exists) 
+    - pod labels: `{app=helm,name=tiller}`
   
-  ![Full benchmark and visualize](https://raw.githubusercontent.com/Tutkovics/benchmarking/master/figures/test/flowchart_clear_vertical_average.png)
-  
-3. **Visualize results**
+  - Develop environment:
+    - Minikube: v1.4.0
 
-  TODO
+## Notes
+1. **benchmark.py**
+  - Was the previous project's main file
+
+2. **Tasks**
+  - [x] Integrate Kubernetes client
+  - [] Integrate Helm client 
+  - [] Integrate Prometheus client
+  - [] Integrate Locust (loadgenerator)
+  

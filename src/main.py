@@ -15,6 +15,8 @@ def main():
     k8s = Cluster(config["cluster_name"])
     print("Cluster: ", str(k8s))
 
+    k8s.helm_install()
+
 
 if __name__ == '__main__':
     try:

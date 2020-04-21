@@ -1,5 +1,7 @@
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+from pyhelm.chartbuilder import ChartBuilder
+from pyhelm.tiller import Tiller
 # from helper import timeit
 # from pprint import pprint
 # import json
@@ -9,6 +11,9 @@ from kubernetes.client.rest import ApiException
 # install loadgenerator
 # get data from
 
+# https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/CoreV1Api.md
+TILLER_PORT = 44134
+TILLER_HOST = "127.0.0.1"
 
 class Cluster():
     """This class represent one Kubernetes cluster
@@ -26,7 +31,7 @@ class Cluster():
         self.cluster_name = name
 
         # check if cluster has installed Helm
-        self.helm_tiller_check()
+        self.tiller_pod = self.helm_tiller_check()
 
     def __str__(self):
         """Convert Cluster object to string when need to print.
@@ -75,13 +80,25 @@ class Cluster():
         else:
             return pods[0]
 
-    def helm_install(chart):
+    def helm_install(self, chart=None):
+        # resp = self.core_api.connect_get_namespaced_pod_portforward(
+        #     self.tiller_pod.metadata.name, self.tiller_pod.metadata.namespace,
+        #     ports=TILLER_PORT,
+        #     _request_timeout=60,
+        #     _preload_content=False
+        # )
+
+        tiller = Tiller(TILLER_HOST)
+        chart = ChartBuilder({"name": "nginx-ingress", "source": {"type": "repo", "location": "https://kubernetes-charts.storage.googleapis.com"}})
+        # print("Copy chart: " + chart)
+        tiller.install_release(chart.get_helm_chart(), dry_run=False, namespace='default')
+
+        print(resp)
+
+    def install_prometheus(self):
         pass
 
-    def install_prometheus():
-        pass
-
-    def install_app():
+    def install_app(self):
         pass
 
     def running_pod_check(self, pod):
