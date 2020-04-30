@@ -15,7 +15,17 @@ def main():
     k8s = Cluster(config["cluster_name"])
     print("Cluster: ", str(k8s))
 
-    k8s.helm_install()
+    #k8s.helm_install(config["application_name"], config["application_repo"])
+    k8s.helm_install(
+        config["application_name"],
+        config["application_repo"],
+        config["application_namespace"],
+        { 
+            config["application_horizontal"]: 5, \
+            config["application_vertical"]: "480Mi", \
+        }
+    )
+    # k8s.helm_uninstall(config["application_name"])
 
 
 if __name__ == '__main__':
