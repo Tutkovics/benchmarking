@@ -8,17 +8,17 @@ Offline profiling applications in Kubernetes cluster. Run more measurements and 
 ## Usage
 1. **Get project**
   Clone the repo:
-  `git clone git@github.com:Tutkovics/benchmarking.git`
+  `$ git clone git@github.com:Tutkovics/benchmarking.git`
 
   Install Python requirements:
-  `pip3 install -r requirements.txt`
+  `$ pip3 install -r requirements.txt`
 
   Run the profiling:
-  `python manin.py <config_file.yaml>`
+  `$ python benchmarking/src/manin.py <config_file.yaml>`
 
 2. **Cluster requirements**
-  - Has installed Helm Tiller pod. (only one exists) 
-    - pod labels: `{app=helm,name=tiller}`
+  - Has installed Helm.
+    - Helm v3.2.0
   
   - Develop environment:
     - Minikube: v1.4.0
@@ -29,7 +29,7 @@ Offline profiling applications in Kubernetes cluster. Run more measurements and 
 
 2. **Tasks**
   - [x] Integrate Kubernetes client
-  - [] Integrate Helm client 
+  - [x] Integrate Helm client 
   - [] Integrate Prometheus client
   - [] Integrate Locust (loadgenerator)
   

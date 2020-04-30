@@ -1,4 +1,5 @@
 from cluster import Cluster
+from loader import Loader
 from helper import read_config_file
 # from exceptions import ConfigFileError
 import sys
@@ -15,16 +16,18 @@ def main():
     k8s = Cluster(config["cluster_name"])
     print("Cluster: ", str(k8s))
 
+    lo = Loader(k8s, config)
+
     #k8s.helm_install(config["application_name"], config["application_repo"])
-    k8s.helm_install(
-        config["application_name"],
-        config["application_repo"],
-        config["application_namespace"],
-        { 
-            config["application_horizontal"]: 5, \
-            config["application_vertical"]: "480Mi", \
-        }
-    )
+    # k8s.helm_install(
+    #     config["application_name"],
+    #     config["application_repo"],
+    #     config["application_namespace"],
+    #     { 
+    #         config["application_horizontal"]: 5, \
+    #         config["application_vertical"]: "480Mi", \
+    #     }
+    # )
     # k8s.helm_uninstall(config["application_name"])
 
 

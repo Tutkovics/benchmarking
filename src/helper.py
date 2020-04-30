@@ -26,6 +26,18 @@ def read_config_file(file_name):
         config_values["application_horizontal"] = config["application"]["horizontal"]
         config_values["application_vertical"] = config["application"]["vertical"]
         config_values["application_namespace"] = config["application"]["namespace"]
+
+        config_values["loader_name"] = config["loader"]["name"]
+        config_values["loader_repo"] = config["loader"]["repo"]
+        config_values["loader_options"] = config["loader"]["options"]
+        config_values["loader_namespace"] = config["loader"]["namespace"]
+
+        config_values["prometheus_deploy"] = config["prometheus"]["deploy"]
+        config_values["prometheus_name"] = config["prometheus"]["name"]
+        config_values["prometheus_repo"] = config["prometheus"]["repo"]
+        config_values["prometheus_options"] = config["prometheus"]["options"]
+        config_values["prometheus_namespace"] = config["prometheus"]["namespace"]
+        
         # config_values["benchmark_tool"] = config["benchmark"]["tool"]["name"]
         # config_values["benchmark_image"] = config["benchmark"]["tool"]["image"]
         # config_values["benchmark_port"] = config["benchmark"]["tool"]["port"]

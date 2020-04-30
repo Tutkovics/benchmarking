@@ -9,8 +9,6 @@ from os import system
 from pprint import pprint
 # import json
 
-# install prometheus
-# install application
 # install loadgenerator
 # get data from
 
@@ -36,7 +34,7 @@ class Cluster():
 
         # check if cluster has installed Helm
         self.check_helm_client_install()
-        self.prometheus_install_to_server()
+        # self.prometheus_install_to_server()
 
         # Helm 3 doesn't need tho have deployed tiller pod
         #self.tiller_pod = self.helm_tiller_check()
@@ -130,11 +128,12 @@ class Cluster():
         
 
         print(command)  # for debug
-        system(command)
+        if not system(command) == 0:
+            print("Unable install Helm repo: " + str(chart))
+            return
         
         # in horizontal scale add now pod
         self.wait_all_replication_to_desire("Helm install (" + deploy_name + ") : ")
-
 
 
     def helm_uninstall(self, deploy_name="deployment", namespace="default"):

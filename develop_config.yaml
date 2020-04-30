@@ -1,24 +1,47 @@
-develop:
-  mode: "develop" # some functions need to call in different mode (eg: benchmark, develop)
-  log_level: "debug"
-cluster:
-  ip: "192.168.99.111"
-  name: "szakdoga" # configure kubectl in multicluster environment
-  worker_node:  "minikube" # worker node's name
-  benchmark_node: "minikube"
+### Used ###
 prometheus:
   deploy: "False"
-  node_port: "30000" # doesn't take affect
+  name: "prometheus"
+  repo: "stable/prometheus"
+  namespace: "metrics"  
+  options:
+    server.service.type: "NodePort"
+    server.service.nodePort: "30000"
 
 application:  # change to helm
   name: "happy-panda"
   repo: "bitnami/node"
-  vertical: "resources.limits.memory"  # parameter to change with Helm to vertical scale
-  horizontal: "replicas"  # parameter to change with Helm to horizontal scale
-  # set: "80" # port to open in pods
   namespace: "default"
   options:
-    - applicationPort: "4000"
+    applicationPort: "4000"
+  vertical: "resources.limits.memory"  # parameter to change with Helm to vertical scale
+  horizontal: "replicas"  # parameter to change with Helm to horizontal scale
+
+loader:
+  name: "locust"
+  #repo: "presslabs/locust"
+  repo: "stable/locust"
+  namespace: "metrics"
+  options:
+    service.nodePort: "30001"
+    worker.replicaCount: "4"
+    master.config.target-host: "http://site.example.com"
+
+
+cluster:
+  ip: "192.168.99.111"
+  name: "szakdoga" # configure kubectl in multicluster environment
+
+### Not Used ###
+develop:
+  mode: "develop" # some functions need to call in different mode (eg: benchmark, develop)
+  log_level: "debug"
+
+  worker_node:  "minikube" # worker node's name
+  benchmark_node: "minikube"
+
+
+
 benchmark:
   tool:
     name: "fortio"
