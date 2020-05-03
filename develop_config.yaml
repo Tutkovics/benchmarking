@@ -8,24 +8,27 @@ prometheus:
     server.service.type: "NodePort"
     server.service.nodePort: "30000"
 
-application:  # change to helm
-  name: "happy-panda"
+application:
+  name: "nodejs"
   repo: "bitnami/node"
   namespace: "default"
   options:
-    applicationPort: "4000"
+    service.nodePort: "30002"  # The range of valid ports is 30000-32767
+    service.type: "NodePort"
   vertical: "resources.limits.memory"  # parameter to change with Helm to vertical scale
   horizontal: "replicas"  # parameter to change with Helm to horizontal scale
 
 loader:
   name: "locust"
-  #repo: "presslabs/locust"
-  repo: "stable/locust"
+  # repo: "presslabs/locust"
+  # repo: "stable/locust"
+  repo: "/home/tutkovics/onlab_msc1/charts/stable/locust"  # install from local Chart
   namespace: "metrics"
   options:
     service.nodePort: "30001"
-    worker.replicaCount: "4"
-    master.config.target-host: "http://site.example.com"
+    worker.replicaCount: "2"
+    master.config.target-host: "http://192.168.99.111:30002"
+    worker.config.locust-script: "/locust-tasks/locustfile.py"
 
 
 cluster:

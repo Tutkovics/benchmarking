@@ -26,6 +26,9 @@ class Cluster():
         :param name: This will represent the cluster
         :type name: string
         """
+        # initialise variables
+        self.installed_with_helm = {}  # store installed charts to easy clean cluster
+
         # load kube config to client
         config.load_kube_config()
         self.core_api = client.CoreV1Api()
@@ -132,17 +135,37 @@ class Cluster():
             print("Unable install Helm repo: " + str(chart))
             return
         
+        self.installed_with_helm[deploy_name] = namespace
+
+        print(self.installed_with_helm)
+
         # in horizontal scale add now pod
         self.wait_all_replication_to_desire("Helm install (" + deploy_name + ") : ")
 
 
     def helm_uninstall(self, deploy_name="deployment", namespace="default"):
-        response = system("helm uninstall " + deploy_name + "-n " + namespace)
+        response = system("helm uninstall " + deploy_name + " -n " + namespace)
 
         if response != 0:
             print("Can't delete [" + deploy_name + "] deployment.")
+            return False
+        
+        # self.installed_with_helm().pop(deploy_name)
 
-        self.wait_all_pods_to_run("Delete pods: ")
+        self.wait_all_pods_to_run("Delete deployment: ")
+        return True
+
+
+    def helm_uninstall_all(self):
+        success = True
+        items = self.installed_with_helm.items()
+
+        for app, namespace in items:
+            if not self.helm_uninstall(app, namespace):
+                success = False
+
+        self.installed_with_helm.clear()
+        return success
 
 
     def wait_all_pods_to_run(self, message="Wait pods to start: "):

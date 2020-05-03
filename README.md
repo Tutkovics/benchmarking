@@ -17,6 +17,9 @@ Offline profiling applications in Kubernetes cluster. Run more measurements and 
   `$ python benchmarking/src/manin.py <config_file.yaml>`
 
 2. **Cluster requirements**
+  - Kubernetes cluster
+    - Kubernetes 1.16
+    
   - Has installed Helm.
     - Helm v3.2.0
   

@@ -26,6 +26,7 @@ def read_config_file(file_name):
         config_values["application_horizontal"] = config["application"]["horizontal"]
         config_values["application_vertical"] = config["application"]["vertical"]
         config_values["application_namespace"] = config["application"]["namespace"]
+        config_values["application_options"] = config["application"]["options"]
 
         config_values["loader_name"] = config["loader"]["name"]
         config_values["loader_repo"] = config["loader"]["repo"]
