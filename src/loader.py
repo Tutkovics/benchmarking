@@ -2,7 +2,8 @@ from cluster import Cluster
 import time
 import requests
 import os
-
+import json
+import urllib
 
 class Loader():
 
@@ -18,7 +19,9 @@ class Loader():
 
         # self.application_install()
 
-        self.locust_load(10,10)
+        # self.locust_load(10,10)
+
+        self.measure()
 
 
     def __str__(self):
@@ -26,8 +29,8 @@ class Loader():
 
     
     def locust_install(self):
-        #print(type(self.config["loader_options"]))
-        #print(self.config["loader_options"])
+        """Function to install load generator with the given parameters
+        """
         self.k8s.helm_install(
             self.config["loader_name"],
             self.config["loader_repo"],
@@ -37,6 +40,8 @@ class Loader():
 
 
     def prometheus_install(self):
+        """Function to install Prometheus with the given parameter if need
+        """
         self.k8s.helm_install(
             self.config["prometheus_name"],
             self.config["prometheus_repo"],
@@ -45,43 +50,36 @@ class Loader():
         )
 
 
-    def application_install(self):
+    def application_install(self, params = {}):
+        """Create and scale the profiling application
+
+        :param params: dictionary contains optional settings for application. Eg: cpu limit
+        :type params: dict, optional
+        """
         self.k8s.helm_install(
             self.config["application_name"],
             self.config["application_repo"],
             self.config["application_namespace"],
             self.config["application_options"],
+            params
             # {
             #     self.config["application_horizontal"]: 5, \
             #     self.config["application_vertical"]: "480Mi", \
             # },
         )
 
-    def application_scale(self):
-        self.application_install(cpu, memoy, replicas)
-
 
     def locust_load(self, locust_count, hatch_rate):
-        # node_port = "30002"  # could read from config file
-        # base_url = "http://" + self.config["cluster_ip"] + ":" + node_port
+        # NOTE: Doesn't work with python requsts
+        start_command  = 'curl -XPOST http://192.168.99.111:30001/swarm -d"' \
+                         'locust_count=' + locust_count+'&' \
+                         'hatch_rate=' + hatch_rate+'"'
+        
+        print(start_command)
+        os.system(start_command)
 
-        # start_params = {'locust_count': self.config["loader_load"]["users"],
-        #           'hatch_rate': self.config["loader_load"]["users"],          
-        # }
-        # start_url = base_url + "/swarm"
-
-        # print(start_params)
-        # start_load = requests.post(start_url, params = start_params) 
-
-        # # print(str(start_load.data))
-        # print(str(start_load.headers))
-
-
-        os.system('curl -XPOST http://192.168.99.111:30001/swarm -d"locust_count='+
-                   self.config["loader_load"]["users"]+'&hatch_rate='+
-                   self.config["loader_load"]["users"]+'"')
-
-        time.sleep(3)  # wait time to hatch and system warmup
+        # NOTE: Empirically 3 minute
+        time.sleep(6)  # wait time to hatch and system warmup
 
         start_time = time.time()
 
@@ -90,12 +88,70 @@ class Loader():
 
         end_time = time.time()
 
+        # stop locust swarm
         os.system('curl http://192.168.99.111:30001/stop')
 
-        # os.system('curl http://192.168.99.111:30001/stats/requests/csv')
         a = requests.get("http://192.168.99.111:30001/stats/requests/csv")
-        print(a.content)
+        # print(a.content)
+
+        # TODO: process prometheus data 
+        cpu, memory = self.prometheus_get_statistic(start_time, end_time)
         
 
-    def prometheus_get_info(self, start, end):
-        pass
+    def prometheus_get_statistic(self, start, end):
+        """Get usage statistic from Prometheus.
+
+        :param start: start time for the load
+        :type start: time
+        :param end: end time for the load
+        :type end: time
+        :return: Cpu and memory usage in the requested time
+        :rtype: 2 json object
+        """
+
+        # NOTE: could use prometheus python client
+        cpu_query = {"query": "sum(rate(container_cpu_usage_seconds_total{image!=''}[3m])) by (namespace)",
+                     "start": str(start),
+                     "end": str(end),
+                     "step": "1",
+                     "timeout": "1000ms"
+        }
+        
+        memory_query = {"query": "sum(rate(container_memory_usage_bytes{image!=''}[3m])) by (namespace)",
+                        "start": str(start),
+                        "end": str(end),
+                        "step": "1",
+                        "timeout": "1000ms"
+        }
+
+
+        url = "http://" + self.config["cluster_ip"] + ":30000/api/v1/query_range?"
+
+        cpu_res = json.loads(requests.get(url + urllib.parse.urlencode(cpu_query)).text)
+        memory_res = json.loads(requests.get(url + urllib.parse.urlencode(memory_query)).text)
+
+        return cpu_res, memory_res
+
+
+    def measure(self):
+        scale_options = self.config["application_scale"]
+
+        # get length of the first "value" from dictionary
+        sum_test_environment = len(next(iter(scale_options.values())))
+
+        for i in range(sum_test_environment):
+            # additional settings for each test/scale case
+            # Eg: {'resources.limits.memory': '64Mi', 'resources.limits.cpu': '200m', 'replicas': '2'}
+            settings = {}
+            for parameter in scale_options:
+                settings[parameter] = scale_options[parameter][i]
+            print(settings)
+
+            # create test environment
+            self.application_install(settings)
+
+            users_to_simulate =  self.config["loader_load"]["users"]
+            hatch_rate =  self.config["loader_load"]["hatch"]
+
+            # create load
+            self.locust_load(users_to_simulate, hatch_rate)

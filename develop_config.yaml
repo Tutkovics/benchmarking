@@ -16,7 +16,7 @@ application:
     service.nodePort: "30002"  # The range of valid ports is 30000-32767
     service.type: "NodePort"
   scale:  # parametrs can variable
-    resources.limits.memory: ['128Mi', '64Mi']
+    resources.limits.memory: ['256Mi', '128Mi']
     resources.limits.cpu: ['100m', '200m']
     replicas: ["1", "2"]
 
@@ -34,7 +34,7 @@ loader:
   load:
     users: "200"
     hatch: "200"
-    time: "6"
+    time: "30"
 
 cluster:
   ip: "192.168.99.111"
