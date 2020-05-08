@@ -79,7 +79,7 @@ class Loader():
         os.system(start_command)
 
         # NOTE: Empirically 3 minute
-        time.sleep(6)  # wait time to hatch and system warmup
+        time.sleep(60)  # wait time to hatch and system warmup
 
         start_time = time.time()
 
@@ -96,6 +96,14 @@ class Loader():
 
         # TODO: process prometheus data 
         cpu, memory = self.prometheus_get_statistic(start_time, end_time)
+
+        self.write_statisctic([cpu, memory])
+
+
+
+    def write_statisctic(self, data):
+        with open("../tmp/data.txt", "w") as f: 
+            f.write(str(data)) 
         
 
     def prometheus_get_statistic(self, start, end):

@@ -1,4 +1,3 @@
-### Used ###
 prometheus:
   deploy: "False"
   name: "prometheus"
@@ -16,7 +15,7 @@ application:
     service.nodePort: "30002"  # The range of valid ports is 30000-32767
     service.type: "NodePort"
   scale:  # parametrs can variable
-    resources.limits.memory: ['256Mi', '128Mi']
+    resources.limits.memory: ['256Mi', '512Mi']
     resources.limits.cpu: ['100m', '200m']
     replicas: ["1", "2"]
 
@@ -33,8 +32,8 @@ loader:
     worker.config.locust-script: "/locust-tasks/locustfile.py"
   load:
     users: "200"
-    hatch: "200"
-    time: "30"
+    hatch: "100"
+    time: "60"
 
 cluster:
   ip: "192.168.99.111"
