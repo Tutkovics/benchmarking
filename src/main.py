@@ -1,9 +1,7 @@
 from cluster import Cluster
 from loader import Loader
 from helper import read_config_file
-# from exceptions import ConfigFileError
-import sys
-import readline, glob
+import readline, glob, sys
 
 
 def main(config_file):
@@ -21,7 +19,6 @@ def main(config_file):
     lo = Loader(k8s, config)
 
     # k8s.helm_uninstall_all()
-
 
 
 if __name__ == '__main__':

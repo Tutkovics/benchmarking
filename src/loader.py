@@ -9,6 +9,13 @@ import urllib
 class Loader():
 
     def __init__(self, cluster, config):
+        """Initialise to load
+
+        :param cluster: cluster to install application
+        :type cluster: Cluseter
+        :param config: config parameters from config file
+        :type config: dictionary
+        """
         self.k8s = cluster
         self.config = config
 
@@ -21,8 +28,16 @@ class Loader():
 
         self.measure()
 
+
     def __str__(self):
+        """String representation
+
+        :return: name of cluster to load
+        :rtype: string
+        """
+
         return "Loader for: " + str(self.k8s)
+
 
     def locust_install(self):
         """Function to install load generator with the given parameters
@@ -35,9 +50,11 @@ class Loader():
             self.config["loader_options"],
         )
 
+
     def prometheus_install(self):
         """Function to install Prometheus with the given parameter if need
         """
+
         self.k8s.helm_install(
             self.config["prometheus_name"],
             self.config["prometheus_repo"],
@@ -45,12 +62,14 @@ class Loader():
             self.config["prometheus_options"],
         )
 
+
     def application_install(self, params={}):
         """Create and scale the profiling application
 
         :param params: dictionary contains optional settings for application.
         :type params: dict, optional
         """
+
         self.k8s.helm_install(
             self.config["application_name"],
             self.config["application_repo"],
@@ -63,7 +82,16 @@ class Loader():
             # },
         )
 
+
     def locust_load(self, locust_count, settings):
+        """Create load from Locust and collect datas from the measurement
+
+        :param locust_count: number of users to simulate
+        :type locust_count: int
+        :param settings: envronment settings: #pods, cpu, memory
+        :type settings: dictionary
+        """
+
         # NOTE: Doesn't work with python requsts
         start_command = 'curl -XPOST http://192.168.99.111:30001/swarm -d"' \
                         'locust_count=' + str(locust_count) + '&' \
@@ -97,7 +125,14 @@ class Loader():
 
         self.write_statisctic(settings, locust, cpu, memory)
 
+
     def csv_to_json(self, response):
+        """Convert requests object to json to write data to file
+
+        :param response: locust response
+        :type response: requests.response
+        """
+
         dictionary_row = response.content.decode("utf-8").split('\n')
         # only last row need.
         keys = dictionary_row[0].split(',')
@@ -107,6 +142,17 @@ class Loader():
 
 
     def write_statisctic(self, settings, locust, cpu, memory):
+        """Concatenate the dictionaries, create a new directory and write the results
+
+        :param settings: enviroment settings
+        :type settings: dictionary
+        :param locust: locust response related info
+        :type locust: dictionary
+        :param cpu: cpu usage info from prometheus
+        :type cpu: dictionary
+        :param memory: memory usage info from prometheus
+        :type memory: dictionary
+        """
 
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + \
                     "-" + self.config["application_name"] + "-" + \
@@ -120,7 +166,8 @@ class Loader():
             results_file.write(json.dumps(data, indent=4))
             # results_file.write(json.dumps(cpu))
             # results_file.write(json.dumps(memory))
-        
+
+
     def prometheus_get_statistic(self, start, end):
         """Get usage statistic from Prometheus.
 
@@ -157,6 +204,9 @@ class Loader():
 
 
     def measure(self):
+        """Do the measurement based on the given parameters from config file
+        """
+
         scale_options = self.config["application_scale"]
 
         # get length of the first "value" from dictionary
@@ -177,6 +227,5 @@ class Loader():
             for user_number in range(int(self.config["loader_load"]["min_users"]),
                                      int(self.config["loader_load"]["max_users"])+1,
                                      int(self.config["loader_load"]["step"])):
-                print("Locust run with #users: ", user_number)
+                # run measurement on every user number
                 self.locust_load(user_number, settings)
-

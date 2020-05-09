@@ -3,18 +3,10 @@ from kubernetes.client.rest import ApiException
 from time import sleep
 from progress.spinner import Spinner
 from os import system
-#from pyhelm.chartbuilder import ChartBuilder
-#from pyhelm.tiller import Tiller
-# from helper import timeit
 from pprint import pprint
-# import json
-
-# install loadgenerator
-# get data from
 
 # https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/CoreV1Api.md
-TILLER_PORT = 44134
-TILLER_HOST = "127.0.0.1"
+
 
 class Cluster():
     """This class represent one Kubernetes cluster
@@ -42,7 +34,6 @@ class Cluster():
         # check if need to install Prometheus
         if self.config["prometheus_deploy"] == "True":
             self.prometheus_install_to_server()
-        
 
 
     def __str__(self):
@@ -94,7 +85,7 @@ class Cluster():
         :return: True if Tiller correct
         :rtype: bool
         """
-
+        #NOTE: not used function, because Helm 3 not required Tiller
         filter = {"watch": False, "label_selector": "app=helm,name=tiller"}
         api_response = self.get_pods(filter)
 
@@ -142,23 +133,35 @@ class Cluster():
         print(self.installed_with_helm)
 
         # in horizontal scale add now pod
-        self.wait_all_replication_to_desire("Helm install (" + deploy_name + ") : ")
+        self.wait_all_replication_to_desire("Helm install (" + deploy_name + ") : ", namespace)
 
 
-    def helm_uninstall(self, deploy_name="deployment", namespace="default"):
+    def helm_uninstall(self, deploy_name, namespace="default"):
+        """Uninstall a deployment by Helm
+
+        :param deploy_name: deployment name used in Helm install
+        :type deploy_name: str
+        :param namespace: deployment's nsmespace, defaults to "default"
+        :type namespace: str, optional
+        :return: Success of delete
+        :rtype: bool
+        """
         response = system("helm uninstall " + deploy_name + " -n " + namespace)
 
         if response != 0:
             print("Can't delete [" + deploy_name + "] deployment.")
             return False
-        
-        # self.installed_with_helm().pop(deploy_name)
 
         self.wait_all_pods_to_run("Delete deployment: ")
         return True
 
 
     def helm_uninstall_all(self):
+        """Uninstall all deployment was created by the script
+
+        :return: Success of delete
+        :rtype: bool
+        """
         success = True
         items = self.installed_with_helm.items()
 
@@ -171,6 +174,11 @@ class Cluster():
 
 
     def wait_all_pods_to_run(self, message="Wait pods to start: "):
+        """Check all pods in default namespace and status need to be running
+
+        :param message: Spinner message, defaults to "Wait pods to start: "
+        :type message: str, optional
+        """
         need_wait = True
         spinner = Spinner(message)
         while(need_wait):
@@ -186,9 +194,16 @@ class Cluster():
                     need_wait = True
         print()
 
-    
-    def wait_all_replication_to_desire(self, message="Wait for replica sets: "):
-        filter = {"watch": False, "namespace": "default"}
+
+    def wait_all_replication_to_desire(self, message="Wait for replica sets: ", namespace="default"):
+        """Check all replicasets and need to be running in the given namespace
+
+        :param message: spinner message, defaults to "Wait for replica sets: "
+        :type message: str, optional
+        :param namespace: namespace for check, defaults to "default"
+        :type namespace: str, optional
+        """
+        filter = {"watch": False, "namespace": namespace}
         need_wait = True
         spinner = Spinner(message)
         while(need_wait):
@@ -205,11 +220,14 @@ class Cluster():
         print()
 
 
-    def install_prometheus(self):
-        pass
-
-
     def running_pod_check(self, pod):
+        """Check the given Pod's status to be Running
+
+        :param pod: one pod object 
+        :type pod: Pod
+        :return: status of the pod
+        :rtype: bool
+        """
         if pod.status.phase == "Running":
             return True
         return False
@@ -223,12 +241,7 @@ class Cluster():
         :return: Status of the replica set. True if everything works fine.
         :rtype: bool
         """
-        # print(rs.metadata.name + "--> " + "(" \
-        #         + str(rs.status.replicas) + "/" \
-        #         + str(rs.status.ready_replicas) + "/" \
-        #         + str(rs.status.fully_labeled_replicas) + "/" \
-        #         + str(rs.status.available_replicas) +")" 
-        # )
+
         if not rs.status.replicas == 0:  # filter already not used replicasets
             if not rs.status.replicas == rs.status.ready_replicas:
                 # print("WAIT: " + rs.metadata.name + "--> " + "(" + str(rs.status.replicas) + "/" + str(rs.status.ready_replicas) +")" )
@@ -238,12 +251,19 @@ class Cluster():
 
 
     def check_helm_client_install(self):
+        """Check if installed helm command can used
+
+        :return: success of helm command
+        :rtype: bool
+        """
         if not system("helm version --short > /dev/null") == 0:
             raise "Are you sure have installed Helm?"
         return True
 
     
     def prometheus_install_to_server(self):
+        """Install Prometheus to the cluster
+        """
         # namespace in kubernetes need to exist
         self.helm_install(
             self.config["prometheus_name"],
