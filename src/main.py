@@ -14,7 +14,7 @@ def main(config_file):
     # read the given config file and store values
     config = read_config_file(config_file)
 
-    k8s = Cluster(config["cluster_name"])
+    k8s = Cluster(config["cluster_name"], config)
     
     print("Cluster: ", str(k8s))
 

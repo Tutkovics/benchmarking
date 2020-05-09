@@ -1,5 +1,7 @@
 # Short term project files
 tmp/
+results/
+src/results/
 
 # Other folders
 env/

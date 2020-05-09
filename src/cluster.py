@@ -20,7 +20,7 @@ class Cluster():
     """This class represent one Kubernetes cluster
     """
 
-    def __init__(self, name):
+    def __init__(self, name, config_f):
         """Initialise cluster. Check and setup client and cluster
 
         :param name: This will represent the cluster
@@ -28,19 +28,21 @@ class Cluster():
         """
         # initialise variables
         self.installed_with_helm = {}  # store installed charts to easy clean cluster
+        self.config = config_f           # get config parameters from config file
+        self.cluster_name = name       # just for fun
 
         # load kube config to client
-        config.load_kube_config()
+        config.load_kube_config()      # default: .kube/config
         self.core_api = client.CoreV1Api()
         self.apps_api = client.AppsV1Api()
-        self.cluster_name = name
 
-        # check if cluster has installed Helm
+        # check if can use Helm (from commandline)
         self.check_helm_client_install()
-        # self.prometheus_install_to_server()
 
-        # Helm 3 doesn't need tho have deployed tiller pod
-        #self.tiller_pod = self.helm_tiller_check()
+        # check if need to install Prometheus
+        if self.config["prometheus_deploy"] == "True":
+            self.prometheus_install_to_server()
+        
 
 
     def __str__(self):
@@ -242,6 +244,10 @@ class Cluster():
 
     
     def prometheus_install_to_server(self):
-        # namespace ins kubernetes need to exist
-        self.helm_install("prometheus", "stable/prometheus", "metrics", {"server.service.type": "NodePort",
-                        "server.service.nodePort": "30000"})
+        # namespace in kubernetes need to exist
+        self.helm_install(
+            self.config["prometheus_name"],
+            self.config["prometheus_repo"],
+            self.config["prometheus_namespace"],
+            self.config["prometheus_options"],
+        )
