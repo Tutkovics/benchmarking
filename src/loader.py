@@ -158,10 +158,10 @@ class Loader():
                     "-" + self.config["application_name"] + "-" + \
                     str.join("-", settings.values()) + ".json"
 
-        if not os.path.exists("./results/" + self.directory):
-            os.makedirs("./results/" + self.directory)
+        if not os.path.exists("../results/" + self.directory):
+            os.makedirs("../results/" + self.directory)
 
-        with open("./results/" + self.directory + "/" + file_name, "w") as results_file:
+        with open("../results/" + self.directory + "/" + file_name, "w") as results_file:
             data = {"settings" : settings, "locust" : locust, "cpu" : cpu, "memory" : memory}
             results_file.write(json.dumps(data, indent=4))
             # results_file.write(json.dumps(cpu))
