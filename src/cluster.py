@@ -212,6 +212,7 @@ class Cluster():
                 sleep(0.2)
 
             need_wait = False
+            # Can't use filter because can't get replicasets from specific namespace
             api_response = self.get_replica_set()
             
             for rs in api_response.items:

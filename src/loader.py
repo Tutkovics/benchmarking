@@ -114,16 +114,23 @@ class Loader():
         os.system('curl http://192.168.99.111:30001/stop')
 
         a = requests.get("http://192.168.99.111:30001/stats/requests/csv")
+        b = requests.get("http://192.168.99.111:30001/stats/distribution/csv")
+        c = requests.get("http://192.168.99.111:30001/stats/failures/csv")
+        d = requests.get("http://192.168.99.111:30001/exceptions/csv")
         # print(a.content)
 
-        locust = self.csv_to_json(a)
+        request = self.csv_to_json(a)
+        distribution = self.csv_to_json(b)
+        failures = self.csv_to_json(c)
+        exceptions = self.csv_to_json(d)
 
         # TODO: process prometheus data
         cpu, memory = self.prometheus_get_statistic(start_time, end_time)
 
         settings["users"] = str(locust_count)
+        settings["app"] = str(self.config["application_name"])
 
-        self.write_statisctic(settings, locust, cpu, memory)
+        self.write_statisctic(settings, request, distribution, failures, exceptions, cpu, memory)
 
 
     def csv_to_json(self, response):
@@ -141,7 +148,7 @@ class Loader():
         return({x.replace('"',''):y.replace('"','') for x,y in zip(keys,values)})
 
 
-    def write_statisctic(self, settings, locust, cpu, memory):
+    def write_statisctic(self, settings, request, distribution, failures, exceptions, cpu, memory):
         """Concatenate the dictionaries, create a new directory and write the results
 
         :param settings: enviroment settings
@@ -162,10 +169,15 @@ class Loader():
             os.makedirs("../results/" + self.directory)
 
         with open("../results/" + self.directory + "/" + file_name, "w") as results_file:
-            data = {"settings" : settings, "locust" : locust, "cpu" : cpu, "memory" : memory}
+            data = {"settings" : settings,
+                    "locust" : request,
+                    "distribution" : distribution,
+                    "failures": failures,
+                    "exceptions" : exceptions,
+                    "cpu" : cpu,
+                    "memory" : memory}
             results_file.write(json.dumps(data, indent=4))
-            # results_file.write(json.dumps(cpu))
-            # results_file.write(json.dumps(memory))
+
 
 
     def prometheus_get_statistic(self, start, end):
@@ -180,27 +192,26 @@ class Loader():
         """
 
         # NOTE: could use prometheus python client
-        cpu_query = {"query": "sum(rate(container_cpu_usage_seconds_total{image!='', namespace='default', container!='POD'}[3m])) by (container)",
+        cpu_query = {"query": "sum(rate(container_cpu_usage_seconds_total{image!='', namespace=~'default|metrics', container!='POD'}[3m])) by (container)",
                      "start": str(start),
                      "end": str(end),
                      "step": "1",
                      "timeout": "1000ms"
         }
-        
-        memory_query = {"query": "sum(rate(container_memory_usage_bytes{image!='', namespace='default', container!='POD'}[3m])) by (container)",
+
+        memory_query = {"query": "sum(rate(container_memory_usage_bytes{image!='', namespace=~'default|metrics', container!='POD'}[3m])) by (container)",
                         "start": str(start),
                         "end": str(end),
                         "step": "1",
                         "timeout": "1000ms"
         }
 
-
         url = "http://" + self.config["cluster_ip"] + ":30000/api/v1/query_range?"
 
         cpu_res = json.loads(requests.get(url + urllib.parse.urlencode(cpu_query)).text)
         memory_res = json.loads(requests.get(url + urllib.parse.urlencode(memory_query)).text)
 
-        return cpu_res, memory_res
+        return cpu_res, memory_res # cpu_metrics_res, memory_metrics_res
 
 
     def measure(self):
@@ -222,6 +233,7 @@ class Loader():
 
             self.k8s.helm_uninstall(self.config["application_name"], self.config["application_namespace"])
             # create test environment
+            time.sleep(60)
             self.application_install(settings)
 
             for user_number in range(int(self.config["loader_load"]["min_users"]),

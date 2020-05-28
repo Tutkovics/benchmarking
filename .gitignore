@@ -6,3 +6,5 @@ src/results/
 # Other folders
 env/
 __pycache__/
+doc/
+generated_doc.md
